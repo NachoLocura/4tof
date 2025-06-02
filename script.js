@@ -1,3 +1,6 @@
+// URL de tu Google Sheets (formato CSV)
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
+
 // Horario exacto según lo especificado
 const HORARIO = {
     "Lunes": {
@@ -45,6 +48,67 @@ const HORARIO = {
     }
 };
 
+// Función para cargar datos desde Google Sheets
+async function cargarDatos() {
+    try {
+        const response = await fetch(SHEET_URL);
+        const csv = await response.text();
+        
+        const lineas = csv.split('\n').slice(1); // Saltar encabezado
+        const eventos = [];
+        const ausencias = [];
+        
+        lineas.forEach(linea => {
+            const [dia, materia, tipo, hora] = linea.split(',').map(item => item?.trim());
+            
+            if (!dia) return; // Saltar líneas vacías
+            
+            if (tipo && tipo.toLowerCase() === 'ausencia') {
+                ausencias.push({ dia, materia, hora });
+            } else if (tipo) {
+                eventos.push({ dia, materia, tipo });
+            }
+        });
+        
+        return { eventos, ausencias };
+    } catch (error) {
+        console.error("Error al cargar datos:", error);
+        return { eventos: [], ausencias: [] };
+    }
+}
+
+// Función para aplicar eventos y ausencias
+function aplicarDatos(eventos, ausencias) {
+    // Aplicar eventos
+    eventos.forEach(evento => {
+        document.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent;
+            if (nombreMateria === evento.materia) {
+                const eventoEl = divMateria.querySelector('.evento');
+                if (eventoEl) {
+                    eventoEl.textContent = evento.tipo;
+                    eventoEl.className = `evento ${evento.tipo.toLowerCase().replace(/\s+/g, '-')}`;
+                }
+            }
+        });
+    });
+    
+    // Aplicar ausencias
+    ausencias.forEach(ausencia => {
+        document.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent;
+            if (nombreMateria === ausencia.materia) {
+                divMateria.classList.add('ausencia');
+                const horarioEl = divMateria.querySelector('.horario');
+                if (horarioEl) {
+                    horarioEl.textContent += ausencia.hora ? ` (Ausente desde ${ausencia.hora})` : ' (Ausente)';
+                }
+            }
+        });
+    });
+}
+
+// Función para generar el calendario
 function generarCalendario() {
     const calendario = document.getElementById("calendario");
     
@@ -64,7 +128,6 @@ function generarCalendario() {
             const divTurnoHeader = document.createElement("div");
             divTurnoHeader.className = "turno-header";
             
-            // Calcular horario total del turno
             const inicioTurno = materias[0].inicio;
             const finTurno = materias[materias.length - 1].fin;
             
@@ -97,5 +160,12 @@ function generarCalendario() {
     });
 }
 
+// Función principal
+async function main() {
+    generarCalendario();
+    const { eventos, ausencias } = await cargarDatos();
+    aplicarDatos(eventos, ausencias);
+}
+
 // Iniciar
-window.onload = generarCalendario;
+window.onload = main;
