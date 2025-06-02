@@ -76,23 +76,60 @@ async function cargarDatos() {
         return { eventos: [], ausencias: [] };
     }
 }
-
 // Función para aplicar eventos y ausencias
 function aplicarDatos(eventos, ausencias) {
     // Aplicar eventos
     eventos.forEach(evento => {
-        document.querySelectorAll('.materia').forEach(divMateria => {
-            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent;
-            if (nombreMateria === evento.materia) {
+        // Buscar el día correspondiente
+        const diaElement = document.querySelector(`.dia-header:contains("${evento.dia}")`)?.closest('.dia');
+        if (!diaElement) return;
+        
+        // Buscar la materia exacta en ese día específico
+        diaElement.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent.trim();
+            if (nombreMateria === evento.materia.trim()) {
                 const eventoEl = divMateria.querySelector('.evento');
                 if (eventoEl) {
                     eventoEl.textContent = evento.tipo;
-                    eventoEl.className = `evento ${evento.tipo.toLowerCase().replace(/\s+/g, '-')}`;
+                    eventoEl.className = `evento ${evento.tipo.toLowerCase()}`;
                 }
             }
         });
     });
-    
+
+    // Aplicar ausencias (con verificación estricta de día)
+    ausencias.forEach(ausencia => {
+        const diaElement = document.querySelector(`.dia-header:contains("${ausencia.dia}")`)?.closest('.dia');
+        if (!diaElement) return;
+        
+        diaElement.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent.trim();
+            if (nombreMateria === ausencia.materia.trim()) {
+                divMateria.classList.add('ausencia');
+                const horarioEl = divMateria.querySelector('.horario');
+                if (horarioEl && ausencia.hora) {
+                    horarioEl.textContent += ` (Ausente desde ${ausencia.hora})`;
+                }
+            }
+        });
+    });
+}
+    // Aplicar ausencias (con verificación de día)
+    ausencias.forEach(ausencia => {
+        const diaElement = document.querySelector(`.dia-header:contains("${ausencia.dia}")`)?.closest('.dia');
+        if (!diaElement) return;
+        
+        diaElement.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent.trim();
+            if (nombreMateria === ausencia.materia.trim()) {
+                divMateria.classList.add('ausencia');
+                const horarioEl = divMateria.querySelector('.horario');
+                if (horarioEl && ausencia.hora) {
+                    horarioEl.textContent += ` (Ausente desde ${ausencia.hora})`;
+                }
+            }
+        });
+    });
     // Aplicar ausencias
     ausencias.forEach(ausencia => {
         document.querySelectorAll('.materia').forEach(divMateria => {
@@ -106,8 +143,6 @@ function aplicarDatos(eventos, ausencias) {
             }
         });
     });
-}
-
 // Función para generar el calendario
 function generarCalendario() {
     const calendario = document.getElementById("calendario");
