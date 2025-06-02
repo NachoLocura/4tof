@@ -3,13 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eventos 4to F</title>
+    <title>Calendario 4to F</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>📅 Resumen de la semana que viene 4to F</h1>
-        <div id="eventos"></div>
+        <h1>🗓️ Calendario 4to F</h1>
+        <div id="calendario"></div>
+        
+        <div class="encuesta">
+            <h2>Paro de Alumnos</h2>
+            <form id="formEncuesta">
+                <label>
+                    <input type="radio" name="opcion" value="Me adhiero"> Me adhiero
+                </label>
+                <label>
+                    <input type="radio" name="opcion" value="No me adhiero"> No me adhiero
+                </label>
+                <button type="submit">Enviar</button>
+            </form>
+            <div id="resultados"></div>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
