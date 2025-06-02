@@ -42,8 +42,8 @@ const HORARIO = {
     },
     "Viernes": {
         "Tarde": [
-            { materia: "Programación I", inicio: "14:00", fin: "15:20" },
-            { materia: "Gestión de Organizaciones", inicio: "15:20", fin: "16:50" }
+            { materia: "Programacion I", inicio: "14:00", fin: "15:20" },
+            { materia: "Gestion de Organizaciones", inicio: "15:20", fin: "16:50" }
         ]
     }
 };
