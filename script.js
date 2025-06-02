@@ -1,139 +1,64 @@
-// URL de tu Google Sheets (pública en formato CSV)
+// URL de tu Google Sheets (¡cámbialas por tus URLs reales!)
 const SHEET_EVENTOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
-const SHEET_AUSENCIAS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
-const SHEET_ENCUESTAS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
 
-// Configuración de horarios
-const config = {
-    turnos: {
-        "Mañana": [
-            { hora: "07:00-08:20", materias: ["Laboratorio de Software II"] },
-            { hora: "08:30-11:15", materias: ["Laboratorio de Hardware II"] }
-        ],
-        "Tarde": [
-            { hora: "14:00-14:40", materias: ["Química"] },
-            { hora: "14:40-15:20", materias: ["Química"] },
-            { hora: "15:30-16:10", materias: ["Química"] }
-        ],
-        "Noche": [
-            { hora: "18:30-19:10", materias: ["Base de Datos I"] },
-            { hora: "19:10-19:50", materias: ["Base de Datos I"] },
-            { hora: "20:00-20:40", materias: ["Base de Datos I"] }
-        ]
-    },
-    diasEspeciales: {
-        "Miércoles": { horarioExtendido: true, horaSalida: "20:40" }
-    }
+// Configuración simplificada
+const HORARIO = {
+    "Lunes": [
+        { materia: "Laboratorio de Software II", inicio: "07:00", fin: "08:20" },
+        { materia: "Laboratorio de Hardware II", inicio: "08:30", fin: "11:15" }
+    ],
+    "Miércoles": [
+        { materia: "Base de Datos I", inicio: "18:30", fin: "20:40" }
+    ],
+    // ... Agrega otros días según tu horario
 };
 
-// Función para obtener datos de Google Sheets
-async function obtenerDatos(url) {
+async function cargarEventos() {
     try {
-        const response = await fetch(url);
+        const response = await fetch(SHEET_EVENTOS);
         const csv = await response.text();
-        const lineas = csv.split('\n').slice(1); // Saltar encabezado
-        return lineas.map(linea => {
-            const [dia, materia, hora, tipo] = linea.split(',');
-            return { dia: dia?.trim(), materia: materia?.trim(), hora: hora?.trim(), tipo: tipo?.trim() };
-        }).filter(item => item.dia); // Filtrar líneas vacías
+        return csv.split('\n').slice(1).map(linea => {
+            const [dia, materia, tipo] = linea.split(',');
+            return { dia: dia?.trim(), materia: materia?.trim(), tipo: tipo?.trim() };
+        }).filter(e => e.dia);
     } catch (error) {
-        console.error("Error al obtener datos:", error);
+        console.error("Error al cargar eventos:", error);
         return [];
     }
 }
 
-// Función principal
-async function generarCalendario() {
+function generarCalendario() {
     const calendario = document.getElementById("calendario");
-    const [eventos, ausencias] = await Promise.all([
-        obtenerDatos(SHEET_EVENTOS),
-        obtenerDatos(SHEET_AUSENCIAS)
-    ]);
     
-    // Generar 2 semanas
-    for (let semana = 0; semana < 2; semana++) {
-        const divSemana = document.createElement("div");
-        divSemana.className = "semana";
-        divSemana.innerHTML = `<h2>Semana ${semana + 1}</h2>`;
+    // Ejemplo para 1 semana (puedes ampliar a 2 semanas)
+    Object.entries(HORARIO).forEach(([dia, materias]) => {
+        const divDia = document.createElement("div");
+        divDia.className = "dia";
+        divDia.innerHTML = `<h2>${dia}</h2>`;
         
-        ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].forEach(dia => {
-            const divDia = document.createElement("div");
-            divDia.className = "dia";
-            divDia.innerHTML = `<h3>${dia}</h3>`;
+        materias.forEach(materiaHorario => {
+            const divMateria = document.createElement("div");
+            divMateria.className = "materia";
             
-            for (const [turno, bloques] of Object.entries(config.turnos)) {
-                const divTurno = document.createElement("div");
-                divTurno.className = "turno";
-                divTurno.innerHTML = `<h4>Turno ${turno}</h4>`;
-                
-                bloques.forEach(bloque => {
-                    bloque.materias.forEach(materia => {
-                        const evento = eventos.find(e => 
-                            e.dia === dia && e.materia === materia && e.hora === bloque.hora
-                        );
-                        
-                        const ausencia = ausencias.find(a => 
-                            a.dia === dia && a.materia === materia
-                        );
-                        
-                        const divMateria = document.createElement("div");
-                        divMateria.className = "materia";
-                        
-                        let contenido = `
-                            <span>${materia}</span>
-                            <span class="horario">${bloque.hora}</span>
-                        `;
-                        
-                        if (ausencia) {
-                            contenido += `<span class="evento ausencia">Ausente: ${ausencia.hora || 'Todo el día'}</span>`;
-                        } else if (evento) {
-                            contenido += `<span class="evento ${evento.tipo}">${evento.tipo}</span>`;
-                        } else {
-                            contenido += `<span class="evento">Día corriente</span>`;
-                        }
-                        
-                        divMateria.innerHTML = contenido;
-                        divTurno.appendChild(divMateria);
-                    });
-                });
-                
-                divDia.appendChild(divTurno);
-            }
+            // Formato: "Base de Datos I | 18:30-20:40"
+            divMateria.innerHTML = `
+                <span>${materiaHorario.materia}</span>
+                <span class="horario">${materiaHorario.inicio}-${materiaHorario.fin}</span>
+                <span class="evento dia-corriente">Día corriente</span>
+            `;
             
-            if (config.diasEspeciales[dia]) {
-                const especial = config.diasEspeciales[dia];
-                divDia.innerHTML += `<p class="especial">Horario extendido - Salida: ${especial.horaSalida}</p>`;
-            }
-            
-            divSemana.appendChild(divDia);
+            divDia.appendChild(divMateria);
         });
         
-        calendario.appendChild(divSemana);
-    }
+        calendario.appendChild(divDia);
+    });
 }
 
-// Manejar encuesta
-document.getElementById("formEncuesta").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const opcion = document.querySelector('input[name="opcion"]:checked')?.value;
-    
-    if (!opcion) {
-        alert("Por favor selecciona una opción");
-        return;
-    }
-    
-    // Guardar en Google Sheets (simulado)
-    try {
-        // Aquí iría el código para enviar a tu Sheet de encuestas
-        console.log("Respuesta guardada:", opcion);
-        document.getElementById("resultados").innerHTML = `
-            <p>Resultado: ${opcion}</p>
-            <p>Gracias por participar</p>
-        `;
-    } catch (error) {
-        console.error("Error al guardar encuesta:", error);
-    }
-});
-
 // Iniciar
-window.onload = generarCalendario;
+window.onload = async () => {
+    const eventos = await cargarEventos();
+    generarCalendario();
+    
+    // Aquí puedes agregar lógica para mezclar eventos con el horario
+    // Ejemplo: buscar si hay eventos para cada materia y reemplazar "Día corriente"
+};

@@ -6,7 +6,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 0 auto;
     background: white;
     padding: 20px;
@@ -14,27 +14,24 @@ body {
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
 
-h1, h2 {
+h1 {
     text-align: center;
     color: #2c3e50;
 }
 
 .dia {
-    margin-bottom: 20px;
+    margin-bottom: 30px;
     background: white;
     border-radius: 8px;
     padding: 15px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.turno {
-    margin-bottom: 15px;
-}
-
 .materia {
     display: flex;
     justify-content: space-between;
-    margin: 8px 0;
+    align-items: center;
+    margin: 10px 0;
     padding: 10px;
     background: #f8f9fa;
     border-radius: 4px;
@@ -43,52 +40,20 @@ h1, h2 {
 .horario {
     font-weight: bold;
     color: #3498db;
+    min-width: 120px;
+    text-align: right;
 }
 
 .evento {
-    padding: 3px 6px;
-    border-radius: 3px;
-    font-size: 0.8em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
     margin-left: 10px;
 }
 
-.evaluacion { background-color: #ffebee; color: #e74c3c; }
-.leccion { background-color: #e3f2fd; color: #3498db; }
-.carpeta { background-color: #fff3e0; color: #f39c12; }
-.ausencia { background-color: #f5f5f5; color: #999; text-decoration: line-through; }
-
-.encuesta {
-    margin-top: 40px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-button {
-    padding: 8px 16px;
-    background: #3498db;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #2980b9;
-}
-
-#resultados {
-    margin-top: 20px;
-}
+.dia-corriente { background: #e8f5e9; color: #2ecc71; }
+.evaluacion { background: #ffebee; color: #e74c3c; }
+.leccion { background: #e3f2fd; color: #3498db; }
+.trabajo { background: #fff3e0; color: #f39c12; }
+.feriado { background: #f5f5f5; color: #9b59b6; }
+.ausencia { background: #f5f5f5; color: #999; text-decoration: line-through; }
