@@ -1,53 +1,93 @@
-// URL de tu Google Sheets (¡cámbialas por tus URLs reales!)
-const SHEET_EVENTOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
-
-// Configuración simplificada
+// Configuración completa del horario
 const HORARIO = {
-    "Lunes": [
-        { materia: "Laboratorio de Software II", inicio: "07:00", fin: "08:20" },
-        { materia: "Laboratorio de Hardware II", inicio: "08:30", fin: "11:15" }
-    ],
-    "Miércoles": [
-        { materia: "Base de Datos I", inicio: "18:30", fin: "20:40" }
-    ],
-    // ... Agrega otros días según tu horario
+    "Lunes": {
+        "Mañana": [
+            { materia: "Laboratorio de Software II", inicio: "07:00", fin: "08:20" },
+            { materia: "Laboratorio de Hardware II", inicio: "08:30", fin: "11:15" }
+        ],
+        "Tarde": [
+            { materia: "Química", inicio: "14:00", fin: "16:10" },
+            { materia: "Técnicas Digitales I", inicio: "16:10", fin: "18:20" }
+        ]
+    },
+    "Martes": {
+        "Mañana": [
+            { materia: "Redes", inicio: "09:10", fin: "11:15" }
+        ],
+        "Tarde": [
+            { materia: "Ética", inicio: "14:00", fin: "16:10" },
+            { materia: "Análisis Matemático", inicio: "16:10", fin: "18:20" }
+        ]
+    },
+    "Miércoles": {
+        "Tarde": [
+            { materia: "Lengua", inicio: "14:00", fin: "16:10" },
+            { materia: "Inglés", inicio: "16:10", fin: "18:20" }
+        ],
+        "Noche": [
+            { materia: "Base de Datos I", inicio: "18:20", fin: "20:40" }
+        ]
+    },
+    "Jueves": {
+        "Mañana": [
+            { materia: "Sistema Operativo II", inicio: "07:00", fin: "09:00" },
+            { materia: "Laboratorio de Software II", inicio: "09:00", fin: "11:20" }
+        ],
+        "Tarde": [
+            { materia: "Programación I", inicio: "14:00", fin: "15:20" },
+            { materia: "Gestión de Organizaciones", inicio: "15:20", fin: "16:50" },
+            { materia: "Análisis Matemático", inicio: "17:00", fin: "18:20" }
+        ]
+    },
+    "Viernes": {
+        "Tarde": [
+            { materia: "Programación I", inicio: "14:00", fin: "15:20" },
+            { materia: "Gestión de Organizaciones", inicio: "15:20", fin: "16:50" }
+        ]
+    }
 };
 
-async function cargarEventos() {
-    try {
-        const response = await fetch(SHEET_EVENTOS);
-        const csv = await response.text();
-        return csv.split('\n').slice(1).map(linea => {
-            const [dia, materia, tipo] = linea.split(',');
-            return { dia: dia?.trim(), materia: materia?.trim(), tipo: tipo?.trim() };
-        }).filter(e => e.dia);
-    } catch (error) {
-        console.error("Error al cargar eventos:", error);
-        return [];
-    }
-}
-
+// Función para generar el calendario
 function generarCalendario() {
     const calendario = document.getElementById("calendario");
     
-    // Ejemplo para 1 semana (puedes ampliar a 2 semanas)
-    Object.entries(HORARIO).forEach(([dia, materias]) => {
+    Object.entries(HORARIO).forEach(([dia, turnos]) => {
         const divDia = document.createElement("div");
         divDia.className = "dia";
-        divDia.innerHTML = `<h2>${dia}</h2>`;
         
-        materias.forEach(materiaHorario => {
-            const divMateria = document.createElement("div");
-            divMateria.className = "materia";
+        const divHeader = document.createElement("div");
+        divHeader.className = "dia-header";
+        divHeader.textContent = dia;
+        divDia.appendChild(divHeader);
+        
+        Object.entries(turnos).forEach(([turno, materias]) => {
+            const divTurno = document.createElement("div");
+            divTurno.className = "turno";
             
-            // Formato: "Base de Datos I | 18:30-20:40"
-            divMateria.innerHTML = `
-                <span>${materiaHorario.materia}</span>
-                <span class="horario">${materiaHorario.inicio}-${materiaHorario.fin}</span>
-                <span class="evento dia-corriente">Día corriente</span>
+            // Calcular horario total del turno
+            const inicioTurno = materias[0].inicio;
+            const finTurno = materias[materias.length - 1].fin;
+            
+            const divTurnoHeader = document.createElement("div");
+            divTurnoHeader.className = "turno-header";
+            divTurnoHeader.innerHTML = `
+                <span>Turno ${turno}</span>
+                <span class="horario">${inicioTurno} - ${finTurno}</span>
             `;
+            divTurno.appendChild(divTurnoHeader);
             
-            divDia.appendChild(divMateria);
+            materias.forEach(materia => {
+                const divMateria = document.createElement("div");
+                divMateria.className = "materia";
+                divMateria.innerHTML = `
+                    <span>${materia.materia}</span>
+                    <span class="horario">${materia.inicio}-${materia.fin}</span>
+                    <span class="evento dia-corriente">Día corriente</span>
+                `;
+                divTurno.appendChild(divMateria);
+            });
+            
+            divDia.appendChild(divTurno);
         });
         
         calendario.appendChild(divDia);
@@ -55,10 +95,4 @@ function generarCalendario() {
 }
 
 // Iniciar
-window.onload = async () => {
-    const eventos = await cargarEventos();
-    generarCalendario();
-    
-    // Aquí puedes agregar lógica para mezclar eventos con el horario
-    // Ejemplo: buscar si hay eventos para cada materia y reemplazar "Día corriente"
-};
+window.onload = generarCalendario;
