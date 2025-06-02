@@ -77,13 +77,24 @@ async function cargarDatos() {
     }
 }
 
-// Función para aplicar eventos y ausencias
+// Función para aplicar eventos y ausencias específicas por día
 function aplicarDatos(eventos, ausencias) {
-    // Aplicar eventos
+    // Aplicar eventos verificando el día exacto
     eventos.forEach(evento => {
-        document.querySelectorAll('.materia').forEach(divMateria => {
-            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent;
-            if (nombreMateria === evento.materia) {
+        // Buscar el contenedor del día específico
+        const diaElement = Array.from(document.querySelectorAll('.dia-header'))
+            .find(header => header.textContent.trim() === evento.dia)
+            ?.closest('.dia');
+        
+        if (!diaElement) {
+            console.warn(`No se encontró el día: ${evento.dia}`);
+            return;
+        }
+        
+        // Buscar la materia exacta dentro de ese día
+        diaElement.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent.trim();
+            if (nombreMateria === evento.materia.trim()) {
                 const eventoEl = divMateria.querySelector('.evento');
                 if (eventoEl) {
                     eventoEl.textContent = evento.tipo;
@@ -93,11 +104,22 @@ function aplicarDatos(eventos, ausencias) {
         });
     });
     
-    // Aplicar ausencias
+    // Aplicar ausencias verificando el día exacto
     ausencias.forEach(ausencia => {
-        document.querySelectorAll('.materia').forEach(divMateria => {
-            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent;
-            if (nombreMateria === ausencia.materia) {
+        // Buscar el contenedor del día específico
+        const diaElement = Array.from(document.querySelectorAll('.dia-header'))
+            .find(header => header.textContent.trim() === ausencia.dia)
+            ?.closest('.dia');
+        
+        if (!diaElement) {
+            console.warn(`No se encontró el día: ${ausencia.dia}`);
+            return;
+        }
+        
+        // Buscar la materia exacta dentro de ese día
+        diaElement.querySelectorAll('.materia').forEach(divMateria => {
+            const nombreMateria = divMateria.querySelector('.nombre-materia')?.textContent.trim();
+            if (nombreMateria === ausencia.materia.trim()) {
                 divMateria.classList.add('ausencia');
                 const horarioEl = divMateria.querySelector('.horario');
                 if (horarioEl) {
@@ -111,6 +133,7 @@ function aplicarDatos(eventos, ausencias) {
 // Función para generar el calendario
 function generarCalendario() {
     const calendario = document.getElementById("calendario");
+    calendario.innerHTML = ''; // Limpiar calendario antes de generar
     
     Object.entries(HORARIO).forEach(([dia, turnos]) => {
         const divDia = document.createElement("div");
