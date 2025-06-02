@@ -1,4 +1,9 @@
-// Configuración básica
+// URL de tu Google Sheets (pública en formato CSV)
+const SHEET_EVENTOS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
+const SHEET_AUSENCIAS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
+const SHEET_ENCUESTAS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSZHOx9FpzP9PlipwbdMmd1ernsJZwQyZXOXwsYvaoFg_pYmNGIGs787gzoz3at2_TLZogHqKy6d92V/pub?output=csv';
+
+// Configuración de horarios
 const config = {
     turnos: {
         "Mañana": [
@@ -21,27 +26,41 @@ const config = {
     }
 };
 
+// Función para obtener datos de Google Sheets
+async function obtenerDatos(url) {
+    try {
+        const response = await fetch(url);
+        const csv = await response.text();
+        const lineas = csv.split('\n').slice(1); // Saltar encabezado
+        return lineas.map(linea => {
+            const [dia, materia, hora, tipo] = linea.split(',');
+            return { dia: dia?.trim(), materia: materia?.trim(), hora: hora?.trim(), tipo: tipo?.trim() };
+        }).filter(item => item.dia); // Filtrar líneas vacías
+    } catch (error) {
+        console.error("Error al obtener datos:", error);
+        return [];
+    }
+}
+
 // Función principal
 async function generarCalendario() {
     const calendario = document.getElementById("calendario");
+    const [eventos, ausencias] = await Promise.all([
+        obtenerDatos(SHEET_EVENTOS),
+        obtenerDatos(SHEET_AUSENCIAS)
+    ]);
     
-    // Obtener datos del Google Sheets
-    const eventos = await obtenerEventos();
-    const ausencias = await obtenerAusencias();
-    
-    // Generar calendario para 2 semanas
+    // Generar 2 semanas
     for (let semana = 0; semana < 2; semana++) {
         const divSemana = document.createElement("div");
         divSemana.className = "semana";
         divSemana.innerHTML = `<h2>Semana ${semana + 1}</h2>`;
         
-        // Generar días de la semana
         ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes"].forEach(dia => {
             const divDia = document.createElement("div");
             divDia.className = "dia";
             divDia.innerHTML = `<h3>${dia}</h3>`;
             
-            // Generar turnos
             for (const [turno, bloques] of Object.entries(config.turnos)) {
                 const divTurno = document.createElement("div");
                 divTurno.className = "turno";
@@ -66,7 +85,7 @@ async function generarCalendario() {
                         `;
                         
                         if (ausencia) {
-                            contenido += `<span class="evento ausencia">Ausente: ${ausencia.hora}</span>`;
+                            contenido += `<span class="evento ausencia">Ausente: ${ausencia.hora || 'Todo el día'}</span>`;
                         } else if (evento) {
                             contenido += `<span class="evento ${evento.tipo}">${evento.tipo}</span>`;
                         } else {
@@ -81,10 +100,9 @@ async function generarCalendario() {
                 divDia.appendChild(divTurno);
             }
             
-            // Manejar días especiales
             if (config.diasEspeciales[dia]) {
                 const especial = config.diasEspeciales[dia];
-                divDia.innerHTML += `<p>Horario extendido - Salida: ${especial.horaSalida}</p>`;
+                divDia.innerHTML += `<p class="especial">Horario extendido - Salida: ${especial.horaSalida}</p>`;
             }
             
             divSemana.appendChild(divDia);
@@ -94,27 +112,27 @@ async function generarCalendario() {
     }
 }
 
-// Funciones para obtener datos
-async function obtenerEventos() {
-    // Implementar conexión a Google Sheets
-    return []; // Ejemplo: { dia: "Lunes", materia: "Química", hora: "14:00-14:40", tipo: "evaluacion" }
-}
-
-async function obtenerAusencias() {
-    // Implementar conexión a Google Sheets
-    return []; // Ejemplo: { dia: "Lunes", materia: "Química", hora: "16:10" }
-}
-
 // Manejar encuesta
-document.getElementById("formEncuesta").addEventListener("submit", function(e) {
+document.getElementById("formEncuesta").addEventListener("submit", async function(e) {
     e.preventDefault();
-    const opcion = document.querySelector('input[name="opcion"]:checked').value;
-    document.getElementById("resultados").innerHTML = `
-        <p>Resultado: ${opcion}</p>
-        <p>Gracias por participar en el Paro de Alumnos</p>
-    `;
+    const opcion = document.querySelector('input[name="opcion"]:checked')?.value;
     
-    // Aquí podrías guardar los resultados en Google Sheets
+    if (!opcion) {
+        alert("Por favor selecciona una opción");
+        return;
+    }
+    
+    // Guardar en Google Sheets (simulado)
+    try {
+        // Aquí iría el código para enviar a tu Sheet de encuestas
+        console.log("Respuesta guardada:", opcion);
+        document.getElementById("resultados").innerHTML = `
+            <p>Resultado: ${opcion}</p>
+            <p>Gracias por participar</p>
+        `;
+    } catch (error) {
+        console.error("Error al guardar encuesta:", error);
+    }
 });
 
 // Iniciar
