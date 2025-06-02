@@ -1,4 +1,4 @@
-// Configuración completa del horario
+// Horario exacto según lo especificado
 const HORARIO = {
     "Lunes": {
         "Mañana": [
@@ -22,10 +22,8 @@ const HORARIO = {
     "Miércoles": {
         "Tarde": [
             { materia: "Lengua", inicio: "14:00", fin: "16:10" },
-            { materia: "Inglés", inicio: "16:10", fin: "18:20" }
-        ],
-        "Noche": [
-            { materia: "Base de Datos I", inicio: "18:20", fin: "20:40" }
+            { materia: "Inglés", inicio: "16:10", fin: "18:20" },
+            { materia: "Base de Datos I", inicio: "18:20", fin: "20:40", especial: true }
         ]
     },
     "Jueves": {
@@ -47,7 +45,6 @@ const HORARIO = {
     }
 };
 
-// Función para generar el calendario
 function generarCalendario() {
     const calendario = document.getElementById("calendario");
     
@@ -64,29 +61,35 @@ function generarCalendario() {
             const divTurno = document.createElement("div");
             divTurno.className = "turno";
             
+            const divTurnoHeader = document.createElement("div");
+            divTurnoHeader.className = "turno-header";
+            
             // Calcular horario total del turno
             const inicioTurno = materias[0].inicio;
             const finTurno = materias[materias.length - 1].fin;
             
-            const divTurnoHeader = document.createElement("div");
-            divTurnoHeader.className = "turno-header";
             divTurnoHeader.innerHTML = `
                 <span>Turno ${turno}</span>
                 <span class="horario">${inicioTurno} - ${finTurno}</span>
             `;
             divTurno.appendChild(divTurnoHeader);
             
+            const divMaterias = document.createElement("div");
+            divMaterias.className = "materias-container";
+            
             materias.forEach(materia => {
                 const divMateria = document.createElement("div");
-                divMateria.className = "materia";
+                divMateria.className = `materia ${materia.especial ? 'especial' : ''}`;
+                
                 divMateria.innerHTML = `
-                    <span>${materia.materia}</span>
+                    <span class="nombre-materia">${materia.materia}</span>
                     <span class="horario">${materia.inicio}-${materia.fin}</span>
                     <span class="evento dia-corriente">Día corriente</span>
                 `;
-                divTurno.appendChild(divMateria);
+                divMaterias.appendChild(divMateria);
             });
             
+            divTurno.appendChild(divMaterias);
             divDia.appendChild(divTurno);
         });
         
