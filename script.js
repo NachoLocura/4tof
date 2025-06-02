@@ -48,6 +48,16 @@ const HORARIO = {
     }
 };
 
+// Tipos de eventos permitidos
+const TIPOS_EVENTOS = {
+    "evaluacion": "Evaluación",
+    "leccion": "Lección",
+    "recuperatorio": "Recuperatorio",
+    "correccion-de-carpetas": "Corrección de Carpetas",
+    "repaso": "Repaso",
+    "ausencia": "Ausencia"
+};
+
 // Función para cargar datos desde Google Sheets
 async function cargarDatos() {
     try {
@@ -63,10 +73,14 @@ async function cargarDatos() {
             
             if (!dia) return; // Saltar líneas vacías
             
-            if (tipo && tipo.toLowerCase() === 'ausencia') {
+            const tipoNormalizado = tipo?.toLowerCase().trim();
+            
+            if (tipoNormalizado === 'ausencia') {
                 ausencias.push({ dia, materia, hora });
-            } else if (tipo) {
+            } else if (tipoNormalizado && Object.values(TIPOS_EVENTOS).map(v => v.toLowerCase()).includes(tipoNormalizado)) {
                 eventos.push({ dia, materia, tipo });
+            } else if (tipo) {
+                console.warn(`Tipo de evento no reconocido: "${tipo}" en ${dia} para ${materia}`);
             }
         });
         
@@ -98,7 +112,8 @@ function aplicarDatos(eventos, ausencias) {
                 const eventoEl = divMateria.querySelector('.evento');
                 if (eventoEl) {
                     eventoEl.textContent = evento.tipo;
-                    eventoEl.className = `evento ${evento.tipo.toLowerCase().replace(/\s+/g, '-')}`;
+                    const tipoClase = evento.tipo.toLowerCase().replace(/\s+/g, '-').replace('ó', 'o');
+                    eventoEl.className = `evento ${tipoClase}`;
                 }
             }
         });
