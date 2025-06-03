@@ -1,5 +1,15 @@
 [
   {
+    "fecha": "2025-06-02",
+    "tipoEvento": "Lección",
+    "materia": "Química"
+  },
+  {
+    "fecha": "2025-06-02",
+    "tipoEvento": "Trabajo Práctico",
+    "materia": "Hardware 2"
+  },
+  {
     "fecha": "2025-06-04",
     "materia": "Lengua",
     "tipoEvento": "Lección"
@@ -11,39 +21,32 @@
   },
   {
     "fecha": "2025-06-05",
-    "materia": "Gestión de las Organizaciones",
+    "tipoEvento": "Lección",
+    "materia": "Gestión de las Organizaciones"
+  },
+  {
+    "fecha": "2025-06-05",
+    "materia": "Software 2",
     "tipoEvento": "Lección"
   },
   {
-    "fecha": "2025-06-02",
-    "materia": "Química",
-    "tipoEvento": "Lección"
-  },
-  {
-    "fecha": "2025-06-02",
-    "materia": "Hardware 2",
-    "tipoEvento": "Trabajo Práctico"
+    "fecha": "2025-06-19",
+    "materia": "Sistema Operativo 2",
+    "tipoEvento": "Evaluación"
   },
   {
     "fecha": "2025-06-10",
     "materia": "Redes",
-    "tipoEvento": "Trabajo Práctico"
+    "tipoEvento": "Traer Materiales"
   },
   {
-    "fecha": "2025-06-07",
-    "tipoEvento": "!!!No hay clases!!!",
-    "materia": "General"
+    "fecha": "2025-06-16",
+    "materia": "Aviso",
+    "tipoEvento": "Feriado"
   },
   {
-    "fecha": "2025-06-11",
-    "tipoEvento": "Traer Materiales",
-    "materia": "Software 2",
-    "detalle": "Traer libro de texto"
-  },
-  {
-    "fecha": "2025-06-12",
-    "tipoEvento": "Ingreso Especial",
-    "materia": "General",
-    "horaEntrada": "15:00"
+    "fecha": "2025-06-20",
+    "materia": "Aviso",
+    "tipoEvento": "Feriado"
   }
 ]
