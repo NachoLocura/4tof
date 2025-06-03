@@ -39,4 +39,9 @@
     "materia": "Aviso",
     "tipoEvento": "Feriado"
   }
+  {
+    "fecha": "2025-06-10",
+    "materia": "Etica",
+    "tipoEvento": "Evaluación"
+  }
 ]
