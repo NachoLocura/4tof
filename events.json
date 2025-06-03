@@ -11,22 +11,32 @@
   },
   {
     "fecha": "2025-06-05",
-    "tipoEvento": "Lección",
-    "materia": "Gestión de las Organizaciones"
+    "materia": "Gestión de las Organizaciones",
+    "tipoEvento": "Lección"
   },
   {
     "fecha": "2025-06-02",
-    "tipoEvento": "Lección",
-    "materia": "Química"
+    "materia": "Química",
+    "tipoEvento": "Lección"
   },
   {
     "fecha": "2025-06-02",
-    "tipoEvento": "Trabajo Práctico",
-    "materia": "Hardware 2"
+    "materia": "Hardware 2",
+    "tipoEvento": "Trabajo Práctico"
   },
   {
     "fecha": "2025-06-10",
-    "tipoEvento": "Trabajo Práctico",
-    "materia": "Redes"
+    "materia": "Redes",
+    "tipoEvento": "Trabajo Práctico"
+  },
+  {
+    "fecha": "2025-06-06",
+    "tipoEvento": "Ausencia 16:10",
+    "materia": "Aviso"
+  },
+  {
+    "fecha": "2025-06-07",
+    "tipoEvento": "!!!No hay clases!!!",
+    "materia": "General"
   }
 ]

@@ -3,10 +3,146 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Avisos del Mes - Estudiantes</title>
+  <title>Acceso al Calendario de Avisos</title>
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* Estilos específicos para la pantalla de selección de rol */
+    .role-selection-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 40px); /* Ajusta a la altura de la ventana */
+      text-align: center;
+      background-color: #1a1a1a; /* Un fondo más oscuro */
+      padding: 20px;
+    }
+
+    .role-selection-screen h1 {
+      color: #1e88e5;
+      font-size: 2.8em;
+      margin-bottom: 40px;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    .role-buttons {
+      display: flex;
+      gap: 30px; /* Espacio entre los botones */
+      flex-wrap: wrap; /* Para que los botones se ajusten en pantallas pequeñas */
+      justify-content: center;
+    }
+
+    .role-button {
+      background-color: #333;
+      color: #e0e0e0;
+      padding: 20px 40px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1.5em;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      min-width: 200px;
+    }
+
+    .role-button:hover {
+      background-color: #1e88e5; /* Color primario al pasar el mouse */
+      transform: translateY(-5px); /* Pequeño efecto de elevación */
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .role-button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Ocultar el contenido principal del alumno por defecto */
+    #mainContent {
+        display: none;
+    }
+
+    /* Estilos del login de administrador (tomados de admin.html pero adaptados) */
+    .admin-login-overlay {
+      display: none; /* Oculto por defecto */
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8); /* Fondo semitransparente */
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .admin-login-box {
+      background-color: #2a2a2a;
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      color: #e0e0e0;
+    }
+
+    .admin-login-box h2 {
+      margin-top: 0;
+      color: #1e88e5;
+    }
+
+    .admin-login-box input[type="password"] {
+      width: calc(100% - 20px);
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #444;
+      border-radius: 5px;
+      background-color: #3a3a3a;
+      color: #e0e0e0;
+      font-size: 1.1em;
+    }
+
+    .admin-login-box button {
+      background-color: #1e88e5;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1.1em;
+      transition: background-color 0.3s ease;
+    }
+
+    .admin-login-box button:hover {
+      background-color: #146cb3;
+    }
+
+    .admin-login-box .error-message {
+      color: #ff4d4d;
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
+
+  <div id="roleSelectionScreen" class="role-selection-screen active">
+    <h1>Bienvenido</h1>
+    <div class="role-buttons">
+      <button id="btnAlumno" class="role-button">Ver Calendario (Alumnos)</button>
+      <button id="btnAdmin" class="role-button">Acceso Administrador</button>
+    </div>
+  </div>
+
+  <div id="adminLoginOverlay" class="admin-login-overlay">
+    <div class="admin-login-box">
+      <h2>Acceso Administrador</h2>
+      <input type="password" id="adminPasswordInput" placeholder="Contraseña Administrador" autocomplete="off" />
+      <button id="btnLoginAdminOverlay">Entrar</button>
+      <p id="adminLoginError" class="error-message"></p>
+      <button id="btnBackToRoles" style="background-color: #555; margin-top: 15px;">Volver</button>
+    </div>
+  </div>
+
   <div id="mainContent">
     <h1 id="tituloCalendario">Avisos del mes</h1>
     <div id="calendario" class="calendario-container">
@@ -16,9 +152,67 @@
     <div class="legend-container">
       <h3>Referencias de Eventos:</h3>
       <div id="eventLegend" class="event-legend">
-        </div>
+      </div>
     </div>
   </div>
+
   <script src="student.js"></script>
+  <script>
+    // Este script se ejecutará solo en index.html
+    const roleSelectionScreen = document.getElementById("roleSelectionScreen");
+    const btnAlumno = document.getElementById("btnAlumno");
+    const btnAdmin = document.getElementById("btnAdmin");
+    const mainContent = document.getElementById("mainContent"); // Contenido del alumno
+
+    const adminLoginOverlay = document.getElementById("adminLoginOverlay");
+    const adminPasswordInput = document.getElementById("adminPasswordInput");
+    const btnLoginAdminOverlay = document.getElementById("btnLoginAdminOverlay");
+    const adminLoginError = document.getElementById("adminLoginError");
+    const btnBackToRoles = document.getElementById("btnBackToRoles");
+
+    // Contraseña del administrador (debe ser la misma que en admin.js)
+    const ADMIN_PASSWORD_INDEX = "543"; // ¡Asegúrate que coincida con admin.js!
+
+    btnAlumno.addEventListener('click', () => {
+      roleSelectionScreen.style.display = "none";
+      mainContent.style.display = "block"; // Mostrar contenido del alumno
+      // student.js ya se encarga de cargar el calendario al DCL
+    });
+
+    btnAdmin.addEventListener('click', () => {
+      roleSelectionScreen.style.display = "none";
+      adminLoginOverlay.style.display = "flex"; // Mostrar el overlay de login
+      adminPasswordInput.value = ""; // Limpiar el input
+      adminLoginError.textContent = ""; // Limpiar errores
+      adminPasswordInput.focus(); // Enfocar el input
+    });
+
+    btnLoginAdminOverlay.addEventListener('click', () => {
+      const password = adminPasswordInput.value;
+      if (password === ADMIN_PASSWORD_INDEX) {
+        // Redirigir al panel de administración
+        window.location.href = "admin.html";
+      } else {
+        adminLoginError.textContent = "Contraseña incorrecta.";
+      }
+    });
+
+    adminPasswordInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        btnLoginAdminOverlay.click();
+      }
+    });
+
+    btnBackToRoles.addEventListener('click', () => {
+      adminLoginOverlay.style.display = "none";
+      roleSelectionScreen.style.display = "flex"; // Volver a la selección de rol
+    });
+
+    // En el caso de que alguien acceda directamente a admin.html sin pasar por index,
+    // o si el administrador ya estaba logueado desde una sesión anterior,
+    // el admin.js original se encargará de la lógica de login.
+    // Este script en index.html es solo para la *selección inicial*.
+
+  </script>
 </body>
 </html>

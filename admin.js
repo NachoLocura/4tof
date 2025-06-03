@@ -1,5 +1,6 @@
+// admin.js
 // Contraseña fija para el panel de administración. ¡Cámbiala por una más segura!
-const ADMIN_PASSWORD = "543";
+const ADMIN_PASSWORD = "543"; // Considera usar una variable de entorno en un entorno de producción real
 
 // --- Elementos de la Interfaz de Usuario (UI) ---
 const loginScreen = document.getElementById("loginScreen");
@@ -7,6 +8,7 @@ const mainAdminContent = document.getElementById("mainAdminContent");
 const passwordInput = document.getElementById("passwordInput");
 const btnLogin = document.getElementById("btnLogin");
 const loginError = document.getElementById("loginError");
+const btnLogout = document.getElementById("btnLogout"); // Botón de cerrar sesión
 
 const tituloCalendarioPreview = document.getElementById("tituloCalendarioPreview");
 const calendarioPreviewDiv = document.getElementById("calendarioPreview");
@@ -26,8 +28,9 @@ const selectHoraSalida = document.getElementById("selectHoraSalida");
 
 // --- Datos de Configuración ---
 let eventos = []; // Almacenará todos los eventos
-const LOCAL_STORAGE_KEY = 'eventsData';
+const LOCAL_STORAGE_KEY = 'eventsData'; // Clave para localStorage
 
+// Definición de tipos de eventos y sus colores (debe coincidir con student.js)
 const tiposEventos = [
     { nombre: "Lección", color: "#82cfff", textColor: "black" },
     { nombre: "Evaluación", color: "#ff4d4d", textColor: "white" },
@@ -37,23 +40,14 @@ const tiposEventos = [
     { nombre: "Ausencia 16:10", color: "#7df27d", textColor: "black" },
     { nombre: "!!!No hay clases!!!", color: "#ff4d4d", textColor: "white" },
     { nombre: "Ingreso Especial", color: "#ADD8E6", textColor: "black" },
-    { nombre: "Salida Especial", color: "#90EE90", textColor: "black" },
-    { nombre: "Día Corriente", color: "#d4edda", textColor: "black" }
+    { nombre: "Salida Especial", color: "#90EE90", textColor: "black" }
 ];
 
+// Definición de materias
 const materias = [
-    "Química",
-    "Software 2",
-    "Hardware 2",
-    "Redes",
-    "Ética",
-    "Análisis Matemático",
-    "Lengua",
-    "Inglés",
-    "Base de Datos",
-    "Sistema Operativo",
-    "Gestión de las Organizaciones",
-    "Programación"
+    "Química", "Software 2", "Hardware 2", "Redes", "Ética", "Análisis Matemático",
+    "Lengua", "Inglés", "Base de Datos 1", "Sistema Operativo 2",
+    "Gestión de las Organizaciones", "Programación", "Aviso", "General"
 ];
 
 // --- Funciones de Utilidad ---
@@ -64,40 +58,65 @@ function saveEventsToLocalStorage() {
 
 function loadEventsFromLocalStorage() {
     const storedEvents = localStorage.getItem(LOCAL_STORAGE_KEY);
-    eventos = storedEvents ? JSON.parse(storedEvents) : [];
+    if (storedEvents) {
+        try {
+            eventos = JSON.parse(storedEvents);
+        } catch (e) {
+            console.error("Error al parsear eventos desde localStorage, se inicializarán vacíos:", e);
+            eventos = [];
+            // Si el localStorage está corrupto, lo borramos para empezar de cero o cargar el JSON inicial
+            localStorage.removeItem(LOCAL_STORAGE_KEY);
+        }
+    } else {
+        eventos = [];
+    }
+    // Ordenar eventos por fecha para visualización en la tabla y preview
+    eventos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 }
 
-function formatFecha(date) {
-    const d = new Date(date);
-    const year = d.getFullYear();
-    const month = (d.getMonth() + 1).toString().padStart(2, '0');
-    const day = d.getDate().toString().padStart(2, '0');
-    return `${year}-${month}-${day}`;
+async function loadInitialEventsFromJsonToLocalStorage() {
+    try {
+        const response = await fetch('events.json');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const initialData = await response.json();
+        if (Array.isArray(initialData)) {
+            // Cargar eventos del JSON inicial solo si localStorage está vacío
+            if (!localStorage.getItem(LOCAL_STORAGE_KEY)) {
+                eventos = initialData;
+                saveEventsToLocalStorage();
+                console.log("Eventos iniciales cargados desde events.json y guardados en localStorage.");
+            } else {
+                console.log("LocalStorage ya contiene eventos, no se cargan los iniciales.");
+            }
+        } else {
+            console.error("El archivo events.json no tiene el formato esperado (debe ser un array de objetos).");
+        }
+    } catch (error) {
+        console.error("Error al cargar el archivo events.json:", error);
+    }
 }
 
-function getDayOfWeek(dateString) {
-    const date = new Date(dateString);
-    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    return days[date.getDay()];
-}
-
+// Función para verificar si un color es oscuro para decidir el color del texto
 function isColorDark(hexColor) {
     const r = parseInt(hexColor.substring(1, 3), 16);
     const g = parseInt(hexColor.substring(3, 5), 16);
     const b = parseInt(hexColor.substring(5, 7), 16);
-    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    return brightness < 128;
+    const luminosity = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminosity < 0.5;
 }
 
-// --- Funciones de Inicialización de UI ---
+// --- Lógica del Calendario y Eventos ---
 
 function populateSelectDia() {
     const today = new Date();
-    selectDia.value = formatFecha(today);
+    const formattedToday = today.toISOString().split('T')[0]; //YYYY-MM-DD
+    selectDia.value = formattedToday;
 }
 
 function populateSelectMateria() {
-    selectMateria.innerHTML = '<option value="">-- Seleccione una materia --</option>';
+    selectMateria.innerHTML = ''; // Limpiar opciones existentes
     materias.forEach(materia => {
         const option = document.createElement('option');
         option.value = materia;
@@ -107,278 +126,190 @@ function populateSelectMateria() {
 }
 
 function populateSelectTipoEvento() {
-    selectTipoEvento.innerHTML = '<option value="">-- Seleccione un tipo --</option>';
+    selectTipoEvento.innerHTML = ''; // Limpiar opciones existentes
     tiposEventos.forEach(tipo => {
         const option = document.createElement('option');
         option.value = tipo.nombre;
         option.textContent = tipo.nombre;
         selectTipoEvento.appendChild(option);
     });
+    // Escuchar cambios para mostrar/ocultar campos de hora
+    selectTipoEvento.addEventListener('change', toggleHoraFields);
+    toggleHoraFields(); // Llamar al inicio para el estado por defecto
 }
 
-function populateSelectHoras(selectElement, startHour, endHour) {
+function populateSelectHora(selectElement, startHour, endHour, stepMinutes, defaultTime) {
     selectElement.innerHTML = '';
+    let defaultSet = false;
+
     for (let h = startHour; h <= endHour; h++) {
-        for (let m = 0; m < 60; m += 10) {
+        for (let m = 0; m < 60; m += stepMinutes) {
             const hour = h.toString().padStart(2, '0');
             const minute = m.toString().padStart(2, '0');
+            const time = `${hour}:${minute}`;
+
             const option = document.createElement('option');
-            option.value = `${hour}:${minute}`;
-            option.textContent = `${hour}:${minute}`;
+            option.value = time;
+            option.textContent = time;
             selectElement.appendChild(option);
+
+            // Set default value if it matches and hasn't been set yet
+            if (defaultTime && time === defaultTime && !defaultSet) {
+                selectElement.value = time;
+                defaultSet = true;
+            }
         }
     }
-}
 
-// --- Lógica del Panel de Administración ---
-
-function handleLogin() {
-    if (passwordInput.value === ADMIN_PASSWORD) {
-        loginScreen.classList.remove("active");
-        loginScreen.style.display = "none";
-        mainAdminContent.style.display = "block";
-        loginError.textContent = "";
-        inicializarAdmin();
-    } else {
-        loginError.textContent = "Contraseña incorrecta. Intenta de nuevo.";
+    // Fallback if default time wasn't found (e.g., if it's not a step multiple)
+    if (defaultTime && !defaultSet && selectElement.querySelector(`option[value="${defaultTime}"]`)) {
+        selectElement.value = defaultTime;
     }
 }
+
+function toggleHoraFields() {
+    const selectedType = selectTipoEvento.value;
+    if (selectedType === "Ingreso Especial") {
+        rowHoraEntrada.style.display = "table-row";
+        rowHoraSalida.style.display = "none";
+        populateSelectHora(selectHoraEntrada, 0, 23, 10, "14:00");
+    } else if (selectedType === "Salida Especial") {
+        rowHoraEntrada.style.display = "none";
+        rowHoraSalida.style.display = "table-row";
+        // Valores por defecto para Hora de Salida (adaptar según el día)
+        // Usar la fecha del input para calcular el día de la semana
+        const selectedDate = new Date(selectDia.value + 'T00:00:00'); // Asegura que la fecha sea válida, evita problemas de zona horaria
+        const dayOfWeek = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, etc.
+        let defaultSalidaTime = "17:00"; // Default para Viernes y Fin de semana
+
+        if (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 4) { // Lunes, Martes, Jueves
+            defaultSalidaTime = "18:20";
+        } else if (dayOfWeek === 3) { // Miércoles
+            defaultSalidaTime = "20:40";
+        }
+        populateSelectHora(selectHoraSalida, 0, 23, 10, defaultSalidaTime);
+    } else {
+        rowHoraEntrada.style.display = "none";
+        rowHoraSalida.style.display = "none";
+    }
+}
+
+// Actualizar las horas de salida cuando cambia la fecha
+selectDia.addEventListener('change', toggleHoraFields);
+
 
 function mostrarEventosActivos() {
-    tablaEventosActivosBody.innerHTML = ''; // Limpiar la tabla
+    tablaEventosActivosBody.innerHTML = ''; // Limpiar tabla
+    // Ordenar eventos por fecha para visualización en la tabla
+    const eventosOrdenados = [...eventos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
 
-    // Filtrar eventos futuros y ordenarlos por fecha
-    const now = new Date();
-    const eventosFuturos = eventos.filter(event => new Date(event.fecha) >= now).sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-
-    eventosFuturos.forEach(event => {
+    eventosOrdenados.forEach((event, index) => {
         const row = tablaEventosActivosBody.insertRow();
-        row.insertCell().textContent = event.fecha;
-        row.insertCell().textContent = event.materia || '-'; // Muestra '-' si no hay materia
-        row.insertCell().textContent = event.tipoEvento;
-        
-        let detalleText = '';
-        if (event.tipoEvento === "Ingreso Especial" && event.horaEntrada) {
-            detalleText = `Entrada: ${event.horaEntrada}`;
-        } else if (event.tipoEvento === "Salida Especial" && event.horaSalida) {
-            detalleText = `Salida: ${event.horaSalida}`;
-        } else if (event.tipoEvento === "Ausencia 16:10") {
-            detalleText = "Horario: 16:10";
-        }
-        row.insertCell().textContent = detalleText;
+        row.insertCell(0).textContent = event.fecha;
+        row.insertCell(1).textContent = event.materia;
+        row.insertCell(2).textContent = event.tipoEvento;
 
-        const actionCell = row.insertCell();
-        const btnEliminar = document.createElement('button');
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.classList.add('btn-delete');
-        btnEliminar.onclick = () => {
-            if (confirm(`¿Estás seguro de que quieres eliminar el evento del ${event.fecha} (${event.materia || 'Sin Materia'}) - ${event.tipoEvento}?`)) {
-                eventos = eventos.filter(e => !(e.fecha === event.fecha && e.materia === event.materia && e.tipoEvento === event.tipoEvento));
-                saveEventsToLocalStorage();
-                mostrarEventosActivos();
-                cargarCalendarioPreview();
+        let detailText = '';
+        if (event.horaEntrada) {
+            detailText = `Entrada: ${event.horaEntrada}`;
+        } else if (event.horaSalida) {
+            detailText = `Salida: ${event.horaSalida}`;
+        } else if (event.detalle) {
+            detailText = event.detalle;
+        }
+        row.insertCell(3).textContent = detailText; // Celda para el detalle/horas
+
+        const actionCell = row.insertCell(4); // Última celda
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Eliminar';
+        deleteButton.classList.add('btn-eliminar');
+        deleteButton.addEventListener('click', () => {
+            // Para eliminar, necesitamos el índice original en el array 'eventos'
+            // ya que 'eventosOrdenados' es una copia.
+            const originalIndex = eventos.findIndex(e =>
+                e.fecha === event.fecha &&
+                e.materia === event.materia &&
+                e.tipoEvento === event.tipoEvento &&
+                (e.horaEntrada || '') === (event.horaEntrada || '') &&
+                (e.horaSalida || '') === (event.horaSalida || '') &&
+                (e.detalle || '') === (event.detalle || '')
+            );
+            if (originalIndex !== -1) {
+                eliminarEvento(originalIndex);
             }
-        };
-        actionCell.appendChild(btnEliminar);
+        });
+        actionCell.appendChild(deleteButton);
     });
-}
-
-function cargarEvento() {
-    const fecha = selectDia.value;
-    const materia = selectMateria.value;
-    const tipoEvento = selectTipoEvento.value;
-    const horaEntrada = selectHoraEntrada.value;
-    const horaSalida = selectHoraSalida.value;
-
-    if (!fecha || !tipoEvento) {
-        alert("Por favor, selecciona una fecha y un tipo de evento.");
-        return;
-    }
-
-    if (tipoEvento !== "Día Corriente" && !materia) {
-        alert("Por favor, selecciona una materia para este tipo de evento.");
-        return;
-    }
-
-    let newEvent = { fecha, tipoEvento };
-
-    if (materia) { // Añadir materia solo si está seleccionada
-        newEvent.materia = materia;
-    }
-
-    if (tipoEvento === "Ingreso Especial") {
-        newEvent.horaEntrada = horaEntrada;
-    } else if (tipoEvento === "Salida Especial") {
-        newEvent.horaSalida = horaSalida;
-    } else if (tipoEvento === "Ausencia 16:10") {
-        newEvent.horaSalida = "16:10"; // Valor fijo para Ausencia 16:10
-    }
-
-    // Eliminar eventos del mismo tipo y materia en la misma fecha si no son "Día Corriente"
-    if (tipoEvento !== "Día Corriente") {
-        eventos = eventos.filter(e => !(e.fecha === fecha && e.materia === materia && e.tipoEvento === tipoEvento));
-    }
-    
-    // Si el nuevo evento es "Día Corriente", eliminar cualquier otro evento para esa fecha
-    if (tipoEvento === "Día Corriente") {
-        eventos = eventos.filter(e => e.fecha !== fecha);
-    } else {
-        // Si el nuevo evento NO es "Día Corriente", y hay un "Día Corriente" antiguo para esa fecha, eliminarlo
-        const indexToRemove = eventos.findIndex(e => e.fecha === newEvent.fecha && e.tipoEvento === "Día Corriente");
-        if (indexToRemove !== -1) {
-            eventos.splice(indexToRemove, 1);
-        }
-    }
-
-    eventos.push(newEvent);
-    saveEventsToLocalStorage();
-    mostrarEventosActivos();
-    cargarCalendarioPreview();
-
-    // Limpiar el formulario excepto la fecha
-    selectMateria.value = "";
-    selectTipoEvento.value = "";
-    rowHoraEntrada.style.display = 'none';
-    rowHoraSalida.style.display = 'none';
-    selectHoraEntrada.value = '';
-    selectHoraSalida.value = '';
 }
 
 function cargarCalendarioPreview() {
-    calendarioPreviewDiv.innerHTML = '<p class="loading-message">Cargando vista previa del calendario...</p>';
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth(); // 0-indexed
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = hoy.getMonth(); // 0-indexed
 
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+    tituloCalendarioPreview.textContent = `Vista Previa del Calendario (Mes Actual)`;
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
     const daysInMonth = lastDayOfMonth.getDate();
 
-    const monthName = firstDayOfMonth.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-    tituloCalendarioPreview.textContent = `Vista Previa del Calendario - ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`;
+    let startDayOfWeek = firstDayOfMonth.getDay();
+    startDayOfWeek = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1;
 
+    // *** CAMBIO CLAVE AQUÍ: Crear un contenedor para la cuadrícula del calendario ***
     const calendarGrid = document.createElement('div');
-    calendarGrid.classList.add('calendar-grid');
+    calendarGrid.classList.add('calendario-grid'); // Aplicará las propiedades de grid del CSS
 
-    // Add day names
-    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     dayNames.forEach(dayName => {
-        const dayNameHeader = document.createElement('div');
-        dayNameHeader.classList.add('day-name');
-        dayNameHeader.textContent = dayName;
-        calendarGrid.appendChild(dayNameHeader);
+        const dayNameCell = document.createElement('div');
+        dayNameCell.classList.add('day-name-cell');
+        dayNameCell.textContent = dayName;
+        calendarGrid.appendChild(dayNameCell);
     });
 
-    // Fill in leading empty days
-    const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 for Sunday, 1 for Monday, etc.
-    for (let i = 0; i < firstDayOfWeek; i++) {
+    for (let i = 0; i < startDayOfWeek; i++) {
         const emptyCell = document.createElement('div');
-        emptyCell.classList.add('calendar-cell', 'empty');
+        emptyCell.classList.add('calendar-day-cell', 'empty');
         calendarGrid.appendChild(emptyCell);
     }
 
-    // Fill in days of the month
     for (let day = 1; day <= daysInMonth; day++) {
         const cell = document.createElement('div');
-        cell.classList.add('calendar-cell');
-
-        const date = new Date(currentYear, currentMonth, day);
-        const formattedDate = formatFecha(date);
+        cell.classList.add('calendar-day-cell');
 
         const dayNumber = document.createElement('div');
         dayNumber.classList.add('day-number');
         dayNumber.textContent = day;
         cell.appendChild(dayNumber);
 
-        // Filter events for the current day
-        const eventsForDay = eventos.filter(event => event.fecha === formattedDate);
+        const currentDate = new Date(year, month, day);
+        const formattedCurrentDate = currentDate.toISOString().split('T')[0];
+
+        const eventsForDay = eventos.filter(event => event.fecha === formattedCurrentDate);
         let contentAdded = false;
 
-        // PRIORIDAD 1: Feriados y No hay clases
-        const specialDayEvent = eventsForDay.find(e => e.tipoEvento === "Feriado" || e.tipoEvento === "!!!No hay clases!!!");
-        if (specialDayEvent) {
-            const tipoConfig = tiposEventos.find(t => t.nombre === specialDayEvent.tipoEvento);
-            if (tipoConfig) {
-                cell.style.backgroundColor = tipoConfig.color;
-                cell.style.color = tipoConfig.textColor;
-            }
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('event-item');
-            messageDiv.style.fontWeight = 'bold';
-            messageDiv.textContent = specialDayEvent.tipoEvento;
-            cell.appendChild(messageDiv);
-            contentAdded = true;
-        }
-
-        // PRIORIDAD 2: Ingreso Especial, Salida Especial, Ausencia 16:10
-        if (!contentAdded) {
-            const specialScheduleEvents = eventsForDay.filter(e =>
-                e.tipoEvento === "Ingreso Especial" ||
-                e.tipoEvento === "Salida Especial" ||
-                e.tipoEvento === "Ausencia 16:10"
-            ).sort((a, b) => a.tipoEvento.localeCompare(b.tipoEvento)); // Sort to ensure consistent order
-            
-            if (specialScheduleEvents.length > 0) {
-                specialScheduleEvents.forEach(event => {
-                    const tipoConfig = tiposEventos.find(t => t.nombre === event.tipoEvento);
-                    const backgroundColor = tipoConfig ? tipoConfig.color : '#ccc';
-                    const textColor = (tipoConfig && isColorDark(tipoConfig.color)) ? 'white' : 'black';
-
-                    const eventDiv = document.createElement('div');
-                    eventDiv.classList.add('event-item');
-                    eventDiv.style.backgroundColor = backgroundColor;
-                    eventDiv.style.color = textColor;
-                    let detailText = event.tipoEvento;
-                    if (event.tipoEvento === "Ingreso Especial" && event.horaEntrada) {
-                        detailText = `Entrada: ${event.horaEntrada}`;
-                    } else if (event.tipoEvento === "Salida Especial" && event.horaSalida) {
-                        detailText = `Salida: ${event.horaSalida}`;
-                    } else if (event.tipoEvento === "Ausencia 16:10") {
-                        detailText = `Ausencia: 16:10`;
-                    }
-                    eventDiv.textContent = detailText;
-                    cell.appendChild(eventDiv);
-                });
+        eventsForDay.forEach(event => {
+            const eventType = tiposEventos.find(tipo => tipo.nombre === event.tipoEvento);
+            if (eventType) {
+                const eventItem = document.createElement('div');
+                eventItem.classList.add('event-item');
+                let eventText = `${event.materia} - ${event.tipoEvento}`;
+                if (event.horaEntrada) eventText += ` (Entrada: ${event.horaEntrada})`;
+                if (event.horaSalida) eventText += ` (Salida: ${event.horaSalida})`;
+                if (event.detalle && !event.horaEntrada && !event.horaSalida) eventText = event.detalle; // Si hay detalle pero no horas, usar detalle
+                eventItem.textContent = eventText;
+                eventItem.style.backgroundColor = eventType.color;
+                eventItem.style.color = eventType.textColor;
+                cell.appendChild(eventItem);
                 contentAdded = true;
             }
-        }
+        });
 
-        // PRIORIDAD 3: Lección, Evaluación, Trabajo Práctico, Carpeta (eventos de materia)
-        if (!contentAdded) {
-            const materiaEvents = eventsForDay.filter(e =>
-                e.tipoEvento === "Lección" ||
-                e.tipoEvento === "Evaluación" ||
-                e.tipoEvento === "Trabajo Práctico" ||
-                e.tipoEvento === "Carpeta"
-            ).sort((a, b) => {
-                // Ordenar por materia y luego por tipo de evento
-                if (a.materia < b.materia) return -1;
-                if (a.materia > b.materia) return 1;
-                return a.tipoEvento.localeCompare(b.tipoEvento);
-            });
-
-            if (materiaEvents.length > 0) {
-                materiaEvents.forEach(event => {
-                    const eventDiv = document.createElement('div');
-                    eventDiv.classList.add('event-item');
-                    const tipoConfig = tiposEventos.find(t => t.nombre === event.tipoEvento);
-                    const backgroundColor = tipoConfig ? tipoConfig.color : '#ccc';
-                    const textColor = (tipoConfig && isColorDark(tipoConfig.color)) ? 'white' : 'black';
-
-                    eventDiv.style.backgroundColor = backgroundColor;
-                    eventDiv.style.color = textColor;
-                    eventDiv.textContent = `${event.materia} - ${event.tipoEvento}`;
-                    cell.appendChild(eventDiv);
-                });
-                contentAdded = true;
-            }
-        }
-
-        // PRIORIDAD 4: Día Corriente (si no hay nada más)
-        if (!contentAdded) {
-            const diaCorrienteEvent = eventsForDay.find(e => e.tipoEvento === "Día Corriente");
-            if (diaCorrienteEvent) {
-                cell.classList.add('dia-corriente-cell');
+        const isToday = hoy.getDate() === day && hoy.getMonth() === month && hoy.getFullYear() === year;
+        if (isToday) {
+            if (!contentAdded || eventsForDay.length === 0) {
+                cell.classList.add('today');
                 const messageDiv = document.createElement('div');
                 messageDiv.classList.add('dia-corriente-message');
                 messageDiv.textContent = 'Día corriente';
@@ -386,53 +317,117 @@ function cargarCalendarioPreview() {
                 contentAdded = true;
             }
         }
-        calendarGrid.appendChild(cell);
+        calendarGrid.appendChild(cell); // Añadir la celda al grid
     }
 
-    calendarioPreviewDiv.innerHTML = ''; // Clear loading message
-    calendarioPreviewDiv.appendChild(calendarGrid);
+    calendarioPreviewDiv.innerHTML = ''; // Limpiar contenido previo
+    calendarioPreviewDiv.appendChild(calendarGrid); // *** AÑADIR EL GRID AL CONTENEDOR PRINCIPAL ***
 }
 
+// --- Manejadores de Eventos ---
 
-// --- Event Listeners ---
-btnLogin.addEventListener('click', handleLogin);
+btnLogin.addEventListener('click', () => {
+    const password = passwordInput.value;
+    if (password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('isAdminLoggedIn', 'true'); // Marca como logueado en sessionStorage
+        loginScreen.style.display = "none";
+        mainAdminContent.style.display = "block";
+        loginError.textContent = ""; // Limpiar mensaje de error
+        inicializarAdmin();
+    } else {
+        loginError.textContent = "Contraseña incorrecta. Intenta de nuevo.";
+    }
+});
+
+// Permitir presionar Enter en el campo de contraseña
 passwordInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
-        handleLogin();
+        btnLogin.click();
     }
 });
 
-selectTipoEvento.addEventListener('change', () => {
-    const selectedTipo = selectTipoEvento.value;
-    rowHoraEntrada.style.display = 'none';
-    rowHoraSalida.style.display = 'none';
-
-    if (selectedTipo === 'Ingreso Especial') {
-        rowHoraEntrada.style.display = 'table-row';
-        populateSelectHoras(selectHoraEntrada, 14, 21); // Horas de 14:00 a 21:00
-        selectHoraEntrada.value = '14:00'; // Default
-    } else if (selectedTipo === 'Salida Especial') {
-        rowHoraSalida.style.display = 'table-row';
-        populateSelectHoras(selectHoraSalida, 14, 21); // Horas de 14:00 a 21:00
-
-        const today = new Date(selectDia.value);
-        const dayOfWeek = today.getDay(); // 0 = Domingo, 1 = Lunes, ..., 5 = Viernes, 6 = Sábado
-
-        let defaultTime = '17:00'; // Default for Friday
-        if (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 4) { // Lunes, Martes, Jueves
-            defaultTime = '18:20';
-        } else if (dayOfWeek === 3) { // Miércoles
-            defaultTime = '20:40';
-        }
-        selectHoraSalida.value = defaultTime;
-    }
-    // NOTA: Se eliminó la línea que reseteaba selectMateria.value
+btnLogout.addEventListener('click', () => {
+    sessionStorage.removeItem('isAdminLoggedIn'); // Eliminar la marca de logueado
+    mainAdminContent.style.display = "none";
+    loginScreen.style.display = "flex";
+    passwordInput.value = ""; // Limpiar campo de contraseña
+    loginError.textContent = "";
 });
 
-btnCargarEvento.addEventListener('click', cargarEvento);
+
+btnCargarEvento.addEventListener('click', () => {
+    const fecha = selectDia.value;
+    const materia = selectMateria.value;
+    const tipoEvento = selectTipoEvento.value;
+
+    if (!fecha || !materia || !tipoEvento) {
+        alert("Por favor, completa todos los campos para el evento.");
+        return;
+    }
+
+    let detalle = '';
+    let horaEntrada = '';
+    let horaSalida = '';
+
+    if (tipoEvento === "Ingreso Especial") {
+        horaEntrada = selectHoraEntrada.value;
+        detalle = `Ingreso: ${horaEntrada}`;
+    } else if (tipoEvento === "Salida Especial") {
+        horaSalida = selectHoraSalida.value;
+        detalle = `Salida: ${horaSalida}`;
+    }
+
+    const newEvent = {
+        fecha: fecha,
+        materia: materia,
+        tipoEvento: tipoEvento
+    };
+    if (detalle) newEvent.detalle = detalle;
+    if (horaEntrada) newEvent.horaEntrada = horaEntrada;
+    if (horaSalida) newEvent.horaSalida = horaSalida;
+
+
+    // Evitar duplicados exactos (fecha, materia, tipoEvento y horas/detalle si aplican)
+    const isDuplicate = eventos.some(event =>
+        event.fecha === newEvent.fecha &&
+        event.materia === newEvent.materia &&
+        event.tipoEvento === newEvent.tipoEvento &&
+        (event.horaEntrada || '') === (newEvent.horaEntrada || '') && // Comparar con cadena vacía si es null/undefined
+        (event.horaSalida || '') === (newEvent.horaSalida || '') &&
+        (event.detalle || '') === (newEvent.detalle || '')
+    );
+
+    if (isDuplicate) {
+        alert("Ya existe un evento idéntico con la misma fecha, materia, tipo de evento y detalles/horas.");
+        return;
+    }
+
+    eventos.push(newEvent);
+    saveEventsToLocalStorage();
+    mostrarEventosActivos();
+    cargarCalendarioPreview();
+    alert("Evento cargado con éxito.");
+
+    // Opcional: limpiar los campos después de cargar el evento
+    selectDia.value = new Date().toISOString().split('T')[0];
+    // selectMateria y selectTipoEvento pueden mantener su última selección o resetearse
+    // selectMateria.selectedIndex = 0;
+    // selectTipoEvento.selectedIndex = 0;
+    toggleHoraFields(); // Ocultar campos de hora si no son relevantes
+});
+
+function eliminarEvento(index) {
+    if (confirm("¿Estás seguro de que quieres eliminar este evento?")) {
+        eventos.splice(index, 1);
+        saveEventsToLocalStorage();
+        mostrarEventosActivos();
+        cargarCalendarioPreview();
+        alert("Evento eliminado con éxito.");
+    }
+}
 
 btnDownloadEvents.addEventListener('click', () => {
-    const dataStr = JSON.stringify(eventos, null, 2);
+    const dataStr = JSON.stringify(eventos, null, 2); // Formato legible con indentación de 2 espacios
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -441,7 +436,7 @@ btnDownloadEvents.addEventListener('click', () => {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    URL.revokeObjectURL(url); // Liberar el objeto URL
 });
 
 loadEventsFileInput.addEventListener('change', (event) => {
@@ -453,40 +448,30 @@ loadEventsFileInput.addEventListener('change', (event) => {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const parsedData = JSON.parse(e.target.result);
-            if (Array.isArray(parsedData)) {
-                // Opcional: preguntar al usuario si quiere sobrescribir o añadir
-                const overwrite = confirm("¿Deseas sobrescribir los eventos existentes con los del archivo JSON? (Cancelar para añadir)");
-                if (overwrite) {
-                    eventos = parsedData;
-                } else {
-                    // Añadir nuevos eventos, evitando duplicados en la misma fecha/materia/tipo
-                    parsedData.forEach(newEvent => {
-                        const existingIndex = eventos.findIndex(e =>
-                            e.fecha === newEvent.fecha &&
-                            e.materia === newEvent.materia &&
-                            e.tipoEvento === newEvent.tipoEvento
-                        );
-                        if (existingIndex === -1) {
-                            // Si el nuevo evento es "Día Corriente", eliminar cualquier otro evento para esa fecha
-                            if (newEvent.tipoEvento === "Día Corriente") {
-                                eventos = eventos.filter(e => e.fecha !== newEvent.fecha);
-                            }
-                            // Si el nuevo evento NO es "Día Corriente", y hay un "Día Corriente" antiguo para esa fecha, eliminarlo
-                            if (newEvent.tipoEvento !== "Día Corriente") {
-                                const indexToRemove = eventos.findIndex(e => e.fecha === newEvent.fecha && e.tipoEvento === "Día Corriente");
-                                if (indexToRemove !== -1) {
-                                    eventos.splice(indexToRemove, 1);
-                                }
-                            }
-                            eventos.push(newEvent);
-                        }
-                    });
-                }
+            const loadedData = JSON.parse(e.target.result);
+            if (Array.isArray(loadedData)) {
+                // Opción para Mergear (añadir nuevos y actualizar existentes)
+                loadedData.forEach(newEvent => {
+                    const existingIndex = eventos.findIndex(event =>
+                        event.fecha === newEvent.fecha &&
+                        event.materia === newEvent.materia &&
+                        event.tipoEvento === newEvent.tipoEvento &&
+                        (event.horaEntrada || '') === (newEvent.horaEntrada || '') &&
+                        (event.horaSalida || '') === (newEvent.horaSalida || '') &&
+                        (event.detalle || '') === (newEvent.detalle || '')
+                    );
+                    if (existingIndex !== -1) {
+                        // Actualizar evento existente
+                        eventos[existingIndex] = newEvent;
+                    } else {
+                        // Añadir nuevo evento
+                        eventos.push(newEvent);
+                    }
+                });
                 saveEventsToLocalStorage();
                 mostrarEventosActivos();
                 cargarCalendarioPreview();
-                alert("Eventos cargados desde JSON con éxito.");
+                alert("Eventos cargados desde JSON con éxito y combinados con los existentes.");
             } else {
                 alert("El archivo JSON no tiene el formato esperado (debe ser un array de objetos).");
             }
@@ -494,7 +479,7 @@ loadEventsFileInput.addEventListener('change', (event) => {
             alert("Error al leer o parsear el archivo JSON: " + error.message);
             console.error("Error al parsear JSON:", error);
         } finally {
-            loadEventsFileInput.value = "";
+            loadEventsFileInput.value = ""; // Limpiar el input de archivo
         }
     };
     reader.onerror = () => {
@@ -509,14 +494,23 @@ function inicializarAdmin() {
     populateSelectDia();
     populateSelectMateria();
     populateSelectTipoEvento();
-    loadEventsFromLocalStorage();
+    loadEventsFromLocalStorage(); // Cargar eventos del localStorage del administrador
     mostrarEventosActivos();
     cargarCalendarioPreview();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // Si ya estamos logueados (para desarrollo), inicializar directamente
-    if (mainAdminContent.style.display === "block") {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Primero, intenta cargar los eventos iniciales si localStorage está vacío
+    // Esto asegura que haya datos al menos del events.json si nunca se ha usado el admin
+    await loadInitialEventsFromJsonToLocalStorage();
+
+    // Luego, verifica la sesión de administrador para mostrar la interfaz
+    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
+        loginScreen.style.display = "none";
+        mainAdminContent.style.display = "block";
         inicializarAdmin();
+    } else {
+        loginScreen.style.display = "flex";
+        mainAdminContent.style.display = "none";
     }
 });

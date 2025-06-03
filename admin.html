@@ -23,6 +23,7 @@
         <label for="loadEventsFile" class="custom-file-upload">Cargar JSON</label>
         <input type="file" id="loadEventsFile" accept=".json" style="display: none;"/>
         <button id="btnDownloadEvents">Descargar Events.json</button>
+        <button id="btnLogout" class="btn-secondary">Cerrar Sesión</button>
       </div>
     </header>
 
@@ -36,41 +37,11 @@
           </tr>
           <tr>
             <td><label for="selectMateria">Materia:</label></td>
-            <td>
-              <select id="selectMateria">
-                <option value="">-- Seleccione una materia --</option>
-                <option value="Química">Química</option>
-                <option value="Software 2">Software 2</option>
-                <option value="Hardware 2">Hardware 2</option>
-                <option value="Redes">Redes</option>
-                <option value="Ética">Ética</option>
-                <option value="Análisis Matemático">Análisis Matemático</option>
-                <option value="Lengua">Lengua</option>
-                <option value="Inglés">Inglés</option>
-                <option value="Base de Datos">Base de Datos</option>
-                <option value="Sistema Operativo">Sistema Operativo</option>
-                <option value="Gestión de las Organizaciones">Gestión de las Organizaciones</option>
-                <option value="Programación">Programación</option>
-              </select>
-            </td>
+            <td><select id="selectMateria"></select></td>
           </tr>
           <tr>
             <td><label for="selectTipoEvento">Tipo de Evento:</label></td>
-            <td>
-              <select id="selectTipoEvento">
-                <option value="">-- Seleccione un tipo --</option>
-                <option value="Lección">Lección</option>
-                <option value="Evaluación">Evaluación</option>
-                <option value="Trabajo Práctico">Trabajo Práctico</option>
-                <option value="Carpeta">Carpeta</option>
-                <option value="Feriado">Feriado</option>
-                <option value="Ausencia 16:10">Ausencia 16:10</option>
-                <option value="!!!No hay clases!!!">!!!No hay clases!!!</option>
-                <option value="Ingreso Especial">Ingreso Especial</option>
-                <option value="Salida Especial">Salida Especial</option>
-                <option value="Día Corriente">Día Corriente</option>
-              </select>
-            </td>
+            <td><select id="selectTipoEvento"></select></td>
           </tr>
           <tr id="rowHoraEntrada" style="display:none;">
             <td><label for="selectHoraEntrada">Hora de Entrada:</label></td>
@@ -101,8 +72,7 @@
                 <th>Fecha</th>
                 <th>Materia</th>
                 <th>Tipo de Evento</th>
-                <th>Detalle</th>
-                <th>Acción</th>
+                <th>Detalle</th> <th>Acción</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +85,7 @@
     <hr />
     <h2 id="tituloCalendarioPreview">Vista Previa del Calendario</h2>
     <div id="calendarioPreview" class="calendario-container">
-      <p class="loading-message">Cargando vista previa del calendario...</p>
+      <p class="loading-message">Cargando vista previa...</p>
     </div>
   </div>
 
