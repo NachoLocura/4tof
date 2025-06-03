@@ -1,16 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horario 4to F</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Avisos del Mes - Estudiantes</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>⏰ Horario 4to F</h1>
-        <div id="calendario"></div>
+  <div id="mainContent">
+    <h1 id="tituloCalendario">Avisos del mes</h1>
+    <div id="calendario" class="calendario-container">
+      <p class="loading-message">Cargando eventos...</p>
     </div>
-    <script src="script.js"></script>
+    <hr />
+    <div class="legend-container">
+      <h3>Referencias de Eventos:</h3>
+      <div id="eventLegend" class="event-legend">
+        </div>
+    </div>
+  </div>
+  <script src="student.js"></script>
 </body>
 </html>

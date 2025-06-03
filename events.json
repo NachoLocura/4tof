@@ -1,0 +1,32 @@
+[
+  {
+    "fecha": "2025-06-04",
+    "materia": "Lengua",
+    "tipoEvento": "Lección"
+  },
+  {
+    "fecha": "2025-06-04",
+    "materia": "Inglés",
+    "tipoEvento": "Evaluación"
+  },
+  {
+    "fecha": "2025-06-05",
+    "tipoEvento": "Lección",
+    "materia": "Gestión de las Organizaciones"
+  },
+  {
+    "fecha": "2025-06-02",
+    "tipoEvento": "Lección",
+    "materia": "Química"
+  },
+  {
+    "fecha": "2025-06-02",
+    "tipoEvento": "Trabajo Práctico",
+    "materia": "Hardware 2"
+  },
+  {
+    "fecha": "2025-06-10",
+    "tipoEvento": "Trabajo Práctico",
+    "materia": "Redes"
+  }
+]
