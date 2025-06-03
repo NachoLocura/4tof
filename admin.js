@@ -3,7 +3,7 @@
 const ADMIN_PASSWORD = "543"; // Considera usar una variable de entorno en un entorno de producción real
 
 // --- Elementos de la Interfaz de Usuario (UI) ---
-const loginScreen = document.getElementById("loginScreen");
+const loginScreen = document.getElementById("loginScreen"); // Se mantiene para acceso directo
 const mainAdminContent = document.getElementById("mainAdminContent");
 const passwordInput = document.getElementById("passwordInput");
 const btnLogin = document.getElementById("btnLogin");
@@ -30,25 +30,35 @@ const selectHoraSalida = document.getElementById("selectHoraSalida");
 let eventos = []; // Almacenará todos los eventos
 const LOCAL_STORAGE_KEY = 'eventsData'; // Clave para localStorage
 
-// Definición de tipos de eventos y sus colores (debe coincidir con student.js)
+// Definición de tipos de eventos y sus colores
+// ¡Hemos quitado "Ausencia 16:10" y agregado "Traer Materiales"!
 const tiposEventos = [
     { nombre: "Lección", color: "#82cfff", textColor: "black" },
     { nombre: "Evaluación", color: "#ff4d4d", textColor: "white" },
     { nombre: "Trabajo Práctico", color: "#fff66b", textColor: "black" },
     { nombre: "Carpeta", color: "#f9c0d1", textColor: "black" },
     { nombre: "Feriado", color: "#d3b9ff", textColor: "black" },
-    { nombre: "Ausencia 16:10", color: "#7df27d", textColor: "black" },
     { nombre: "!!!No hay clases!!!", color: "#ff4d4d", textColor: "white" },
     { nombre: "Ingreso Especial", color: "#ADD8E6", textColor: "black" },
-    { nombre: "Salida Especial", color: "#90EE90", textColor: "black" }
+    { nombre: "Salida Especial", color: "#90EE90", textColor: "black" },
+    { nombre: "Traer Materiales", color: "#FFA500", textColor: "black" } // Nuevo tipo de evento
 ];
 
-// Definición de materias
-const materias = [
-    "Química", "Software 2", "Hardware 2", "Redes", "Ética", "Análisis Matemático",
-    "Lengua", "Inglés", "Base de Datos 1", "Sistema Operativo 2",
-    "Gestión de las Organizaciones", "Programación", "Aviso", "General"
-];
+// --- Horario de Clases (Nuevo Estructura de Datos) ---
+// Mapea el nombre del día a un array de materias
+const horarioPorDia = {
+    "Lunes": ["Química", "Técnicas Digitales 1", "Hardware 2", "Software 2", "Aviso", "General"],
+    "Martes": ["Redes", "Ética", "Análisis Matemático", "Aviso", "General"],
+    "Miércoles": ["Lengua", "Inglés", "Base de Datos 1", "Aviso", "General"],
+    "Jueves": ["Sistema Operativo 2", "Software 2", "Programación", "Gestión de las Organizaciones", "Análisis Matemático", "Aviso", "General"],
+    "Viernes": ["Programación", "Gestión de las Organizaciones", "Aviso", "General"],
+    "Sábado": ["Aviso", "General"], // Fines de semana pueden tener avisos o generales
+    "Domingo": ["Aviso", "General"]
+};
+
+// Materias generales que siempre deberían aparecer
+const materiasGenerales = ["Aviso", "General"];
+
 
 // --- Funciones de Utilidad ---
 
@@ -113,17 +123,27 @@ function populateSelectDia() {
     const today = new Date();
     const formattedToday = today.toISOString().split('T')[0]; //YYYY-MM-DD
     selectDia.value = formattedToday;
+    // Llamar a actualizar materias cuando se inicializa el día
+    updateMateriasForSelectedDay();
 }
 
-function populateSelectMateria() {
+function updateMateriasForSelectedDay() {
+    const selectedDate = new Date(selectDia.value + 'T00:00:00'); // Asegura la zona horaria neutral
+    const dayOfWeek = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const currentDayName = dayNames[dayOfWeek];
+
+    const materiasParaEsteDia = horarioPorDia[currentDayName] || materiasGenerales; // Fallback a generales
+
     selectMateria.innerHTML = ''; // Limpiar opciones existentes
-    materias.forEach(materia => {
+    materiasParaEsteDia.forEach(materia => {
         const option = document.createElement('option');
         option.value = materia;
         option.textContent = materia;
         selectMateria.appendChild(option);
     });
 }
+
 
 function populateSelectTipoEvento() {
     selectTipoEvento.innerHTML = ''; // Limpiar opciones existentes
@@ -182,11 +202,14 @@ function toggleHoraFields() {
         const dayOfWeek = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, etc.
         let defaultSalidaTime = "17:00"; // Default para Viernes y Fin de semana
 
-        if (dayOfWeek === 1 || dayOfWeek === 2 || dayOfWeek === 4) { // Lunes, Martes, Jueves
+        if (dayOfWeek === 1 || dayOfWeek === 4) { // Lunes, Jueves
             defaultSalidaTime = "18:20";
+        } else if (dayOfWeek === 2) { // Martes
+            defaultSalidaTime = "18:20"; // O el horario que corresponda para Martes
         } else if (dayOfWeek === 3) { // Miércoles
             defaultSalidaTime = "20:40";
         }
+        // Para Viernes, el default sigue siendo 17:00
         populateSelectHora(selectHoraSalida, 0, 23, 10, defaultSalidaTime);
     } else {
         rowHoraEntrada.style.display = "none";
@@ -194,8 +217,11 @@ function toggleHoraFields() {
     }
 }
 
-// Actualizar las horas de salida cuando cambia la fecha
-selectDia.addEventListener('change', toggleHoraFields);
+// Actualizar las horas de salida y las materias cuando cambia la fecha
+selectDia.addEventListener('change', () => {
+    toggleHoraFields();
+    updateMateriasForSelectedDay(); // ¡Nuevo!
+});
 
 
 function mostrarEventosActivos() {
@@ -348,10 +374,8 @@ passwordInput.addEventListener('keypress', (e) => {
 
 btnLogout.addEventListener('click', () => {
     sessionStorage.removeItem('isAdminLoggedIn'); // Eliminar la marca de logueado
-    mainAdminContent.style.display = "none";
-    loginScreen.style.display = "flex";
-    passwordInput.value = ""; // Limpiar campo de contraseña
-    loginError.textContent = "";
+    // Al cerrar sesión, redirigimos a la página de selección de rol
+    window.location.href = "index.html";
 });
 
 
@@ -413,6 +437,7 @@ btnCargarEvento.addEventListener('click', () => {
     // selectMateria y selectTipoEvento pueden mantener su última selección o resetearse
     // selectMateria.selectedIndex = 0;
     // selectTipoEvento.selectedIndex = 0;
+    updateMateriasForSelectedDay(); // Actualizar materias de nuevo por si se seleccionó un día diferente
     toggleHoraFields(); // Ocultar campos de hora si no son relevantes
 });
 
@@ -491,8 +516,8 @@ loadEventsFileInput.addEventListener('change', (event) => {
 
 // Inicialización
 function inicializarAdmin() {
-    populateSelectDia();
-    populateSelectMateria();
+    populateSelectDia(); // Esto ahora llama a updateMateriasForSelectedDay()
+    // populateSelectMateria(); // Ya no se llama directamente, se hace en populateSelectDia
     populateSelectTipoEvento();
     loadEventsFromLocalStorage(); // Cargar eventos del localStorage del administrador
     mostrarEventosActivos();

@@ -30,13 +30,20 @@
     "tipoEvento": "Trabajo Práctico"
   },
   {
-    "fecha": "2025-06-06",
-    "tipoEvento": "Ausencia 16:10",
-    "materia": "Aviso"
-  },
-  {
     "fecha": "2025-06-07",
     "tipoEvento": "!!!No hay clases!!!",
     "materia": "General"
+  },
+  {
+    "fecha": "2025-06-11",
+    "tipoEvento": "Traer Materiales",
+    "materia": "Software 2",
+    "detalle": "Traer libro de texto"
+  },
+  {
+    "fecha": "2025-06-12",
+    "tipoEvento": "Ingreso Especial",
+    "materia": "General",
+    "horaEntrada": "15:00"
   }
 ]
