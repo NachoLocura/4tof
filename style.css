@@ -1,387 +1,510 @@
-/* Modo oscuro atractivo */
+/* style.css - Diseño Responsivo y Agradable a la Vista */
+
+/* --- Variables CSS (opcional pero muy útil para consistencia) --- */
+:root {
+  --background-dark: #121212;
+  --surface-dark: #1e1e1e;
+  --card-dark: #2a2a2a;
+  --text-light: #e0e0e0;
+  --text-lighter: #f5f5f5;
+  --primary-color: #1e88e5; /* Azul brillante */
+  --accent-color: #03dac6; /* Un color de acento para botones, etc. */
+  --error-color: #cf6679; /* Rojo para errores */
+  --border-color: #444;
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --shadow-color-light: rgba(0, 0, 0, 0.2);
+}
+
+/* --- Base y Tipografía --- */
 body {
-  background-color: #121212;
-  color: #e0e0e0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-dark);
+  color: var(--text-light);
+  font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   margin: 0;
   padding: 20px;
   line-height: 1.6;
+  min-height: 100vh; /* Asegura que el body ocupe toda la altura de la ventana */
+  display: flex;
+  flex-direction: column; /* Permite que el footer se quede abajo */
 }
 
 h1, h2, h3 {
-  color: #f5f5f5;
+  color: var(--text-lighter);
   text-align: center;
   margin-bottom: 20px;
 }
 
 h1 {
-  color: #1e88e5; /* Primary accent color for main titles */
+  color: var(--primary-color);
   font-size: 2.5em;
+  font-weight: 700;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
 }
 
 h2 {
   font-size: 1.8em;
-  border-bottom: 1px solid #333;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
   margin-top: 30px;
+  color: var(--text-lighter);
 }
 
 hr {
   border: none;
-  border-top: 1px solid #444;
+  border-top: 1px solid var(--border-color);
   margin: 40px 0;
 }
 
-/* Login Screen */
-.login-screen {
-  display: none; /* Hidden by default, shown by JS */
+/* --- Contenedores Generales --- */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 15px; /* Padding horizontal para evitar que el contenido toque los bordes */
+  flex-grow: 1; /* Permite que los contenedores crezcan y empujen el footer */
+}
+
+section {
+  background-color: var(--card-dark);
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px var(--shadow-color);
+  margin-bottom: 30px;
+}
+
+/* --- Botones Genéricos --- */
+button, .custom-file-upload {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 5px var(--shadow-color-light);
+  display: inline-block; /* Para el custom-file-upload */
+  text-align: center;
+  text-decoration: none; /* Asegura que no tenga subrayado si es un <a> */
+}
+
+button:hover, .custom-file-upload:hover {
+  background-color: #146cb3; /* Tono más oscuro del primario */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+button:active, .custom-file-upload:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px var(--shadow-color-light);
+}
+
+.btn-secondary {
+  background-color: #555;
+  margin-left: 10px; /* Espacio entre botones */
+}
+
+.btn-secondary:hover {
+  background-color: #666;
+}
+
+.btn-eliminar {
+  background-color: var(--error-color);
+  padding: 8px 15px;
+  font-size: 0.9em;
+}
+
+.btn-eliminar:hover {
+  background-color: #c0392b;
+}
+
+/* --- Formularios e Inputs --- */
+input[type="text"],
+input[type="password"],
+input[type="date"],
+select {
+  width: calc(100% - 22px); /* Ancho completo menos padding y borde */
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  background-color: var(--surface-dark);
+  color: var(--text-light);
+  font-size: 1em;
+  box-sizing: border-box; /* Incluye padding y borde en el ancho */
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="date"]:focus,
+select:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.3); /* Resplandor al enfocar */
+  outline: none;
+}
+
+select {
+  /* Estilos específicos para select para una apariencia más uniforme */
+  -webkit-appearance: none; /* Eliminar el estilo por defecto de los navegadores */
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e0e0e0'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 15px;
+}
+
+.error-message {
+  color: var(--error-color);
+  margin-top: 10px;
+  font-size: 0.9em;
+}
+
+.default-info {
+  font-size: 0.8em;
+  color: #aaa;
+  margin-left: 10px;
+}
+
+/* --- Estilos Específicos: Pantalla de Selección de Rol (index.html) --- */
+.role-selection-screen {
+  display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: calc(100vh - 40px); /* Full viewport height minus body padding */
+  min-height: calc(100vh - 40px);
   text-align: center;
+  background-color: var(--background-dark); /* Asegura que el fondo sea oscuro */
+  padding: 20px;
+  box-sizing: border-box;
 }
-.login-screen.active {
+
+.role-selection-screen h1 {
+  font-size: 2.8em;
+  margin-bottom: 40px;
+  color: var(--primary-color);
+}
+
+.role-buttons {
   display: flex;
+  flex-direction: column; /* Por defecto apilados en móvil */
+  gap: 20px;
+  width: 100%;
+  max-width: 400px; /* Ancho máximo para los botones en pantallas medianas */
+}
+
+.role-button {
+  width: 100%; /* Ocupa todo el ancho disponible en su contenedor */
+  padding: 18px 25px;
+  font-size: 1.3em;
+  background-color: var(--card-dark);
+  color: var(--text-light);
+  border-radius: 8px;
+  box-shadow: 0 3px 7px var(--shadow-color-light);
+}
+
+.role-button:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* --- Overlay de Login de Administrador (index.html) --- */
+.admin-login-overlay {
+  display: none; /* Controlado por JS */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.85); /* Fondo más oscuro y semitransparente */
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.admin-login-box {
+  background-color: var(--card-dark);
+  padding: 40px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 25px var(--shadow-color);
+  text-align: center;
+  width: 100%;
+  max-width: 450px;
+  color: var(--text-light);
+  transform: translateY(-20px); /* Pequeña elevación inicial */
+  animation: fadeInDown 0.4s ease-out forwards; /* Animación de entrada */
+}
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+.admin-login-box h2 {
+  margin-top: 0;
+  color: var(--primary-color);
+  font-size: 1.8em;
+}
+
+.admin-login-box input[type="password"] {
+  width: calc(100% - 20px); /* Ajuste por padding */
+  margin-bottom: 25px;
+  background-color: var(--surface-dark);
+}
+
+.admin-login-box button {
+  width: 100%;
+  margin-bottom: 15px; /* Espacio entre botones en el login box */
+}
+
+.admin-login-box button:last-child {
+  margin-bottom: 0;
+}
+
+/* --- Pantalla de Login (admin.html) - Mantener consistente --- */
+.login-screen {
+  display: flex; /* Controlado por JS */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 40px);
+  text-align: center;
+  background-color: var(--background-dark);
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .login-screen h2 {
   font-size: 2em;
-  color: #1e88e5;
-  margin-bottom: 15px;
-}
-
-.login-screen p {
-  margin-bottom: 20px;
-  font-size: 1.1em;
+  color: var(--primary-color);
 }
 
 .login-screen input[type="password"] {
-  padding: 12px 15px;
-  border: 1px solid #555;
-  border-radius: 6px;
-  background-color: #333;
-  color: #e0e0e0;
-  font-size: 1em;
-  width: 250px;
-  max-width: 80%;
-  margin-bottom: 15px;
-  outline: none;
-  transition: border-color 0.3s ease;
-}
-
-.login-screen input[type="password"]:focus {
-  border-color: #1e88e5;
+  width: 80%; /* Un poco más centrado en pantallas grandes */
+  max-width: 350px;
+  margin-top: 20px;
 }
 
 .login-screen button {
-  padding: 12px 25px;
-  background-color: #1e88e5;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 1.1em;
-  cursor: pointer;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  margin-top: 20px;
+  width: 60%;
+  max-width: 200px;
 }
 
-.login-screen button:hover {
-  background-color: #1565c0;
-  transform: translateY(-2px);
-}
-
-.login-screen .error-message {
-  color: #ff4d4d;
-  margin-top: 10px;
-  font-weight: bold;
-}
-
-/* Admin Panel */
+/* --- Panel de Administración (admin.html) --- */
 .admin-header {
+  background-color: var(--surface-dark);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 30px;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #333;
+  gap: 15px;
+  box-shadow: 0 4px 10px var(--shadow-color);
 }
 
 .admin-header h1 {
   margin: 0;
-  text-align: left;
-  flex-grow: 1;
+  font-size: 2em;
+  color: var(--primary-color);
 }
 
 .admin-actions {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Permitir que los botones fluyan en líneas múltiples */
   justify-content: center;
-}
-
-.custom-file-upload {
-  display: inline-block;
-  padding: 10px 20px;
-  background-color: #4CAF50; /* Green */
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.3s ease;
-}
-
-.custom-file-upload:hover {
-  background-color: #45a049;
-}
-
-.btn-primary, .btn-secondary {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.3s ease;
-}
-
-.btn-primary {
-  background-color: #1e88e5;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #1565c0;
-}
-
-.btn-secondary {
-  background-color: #f44336; /* Red */
-  color: white;
-}
-
-.btn-secondary:hover {
-  background-color: #d32f2f;
+  gap: 10px; /* Espacio entre los botones de acción */
 }
 
 .admin-interface-container {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Permitir que las secciones se apilen en pantallas pequeñas */
   gap: 30px;
-  margin-top: 30px;
   justify-content: center;
 }
 
-.admin-panel-section, .active-events-section {
-  background-color: #222;
-  padding: 25px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-  flex: 1;
-  min-width: 300px;
-  max-width: 500px;
+.event-form-section, .active-events-section {
+  flex: 1; /* Permite que ocupen el espacio disponible */
+  min-width: 300px; /* Ancho mínimo para que no se compriman demasiado */
 }
 
-.admin-panel-section table {
+.event-form-section table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 20px;
 }
 
-.admin-panel-section td {
+.event-form-section td {
   padding: 10px 0;
   vertical-align: middle;
 }
 
-.admin-panel-section label {
+.event-form-section label {
   display: block;
   margin-bottom: 5px;
-  color: #bbbbbb;
-  font-size: 0.95em;
+  font-weight: 500;
+  color: var(--text-lighter);
 }
 
-.admin-panel-section input[type="date"],
-.admin-panel-section select {
-  width: calc(100% - 20px); /* Adjust for padding */
-  padding: 10px;
-  border: 1px solid #555;
-  border-radius: 5px;
-  background-color: #333;
-  color: #e0e0e0;
-  font-size: 0.95em;
-  margin-right: 10px;
-  -webkit-appearance: none; /* Remove default arrow on select for better styling */
-  -moz-appearance: none;
-  appearance: none;
-  background-image: url('data:image/svg+xml;utf8,<svg fill="%23e0e0e0" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 8px top 50%;
-  background-size: 18px auto;
+.event-form-section input[type="date"],
+.event-form-section select {
+  width: calc(100% - 22px);
 }
 
-.admin-panel-section input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1); /* Makes the calendar icon white */
+.event-form-section button {
+  margin-top: 15px;
+  width: 100%; /* Botón de carga ocupa todo el ancho */
+  max-width: 250px;
 }
 
-.admin-panel-section select option {
-  background-color: #333;
-  color: #e0e0e0;
-}
-
-.admin-panel-section .default-info {
-  font-size: 0.8em;
-  color: #888;
-  margin-top: 5px;
-  display: block;
-}
-
-.active-events-section .table-wrapper {
-  overflow-x: auto; /* Ensures table is scrollable on small screens */
+/* Tablas de Eventos Activos */
+.table-wrapper {
+  overflow-x: auto; /* Permite scroll horizontal en tablas grandes en móviles */
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow-color-light);
 }
 
 .eventos-activos-table {
   width: 100%;
+  min-width: 600px; /* Ancho mínimo de la tabla para evitar que se vea muy comprimida */
   border-collapse: collapse;
-  margin-top: 15px;
+  background-color: var(--surface-dark);
 }
 
 .eventos-activos-table th,
 .eventos-activos-table td {
-  border: 1px solid #444;
-  padding: 10px;
+  padding: 12px 15px;
   text-align: left;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .eventos-activos-table th {
-  background-color: #333;
-  color: #f5f5f5;
-  font-weight: bold;
-}
-
-.eventos-activos-table tr:nth-child(even) {
-  background-color: #2a2a2a;
-}
-
-.eventos-activos-table tr:hover {
-  background-color: #383838;
-}
-
-.eventos-activos-table .btn-eliminar {
-  padding: 6px 12px;
-  background-color: #f44336;
+  background-color: var(--primary-color);
   color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.85em;
-  transition: background-color 0.3s ease;
+  font-weight: 600;
+  position: sticky; /* Fija los encabezados al hacer scroll horizontal */
+  top: 0;
+  z-index: 1;
 }
 
-.eventos-activos-table .btn-eliminar:hover {
-  background-color: #d32f2f;
+.eventos-activos-table tbody tr:hover {
+  background-color: #333;
+}
+
+.eventos-activos-table td:last-child {
+  text-align: center; /* Centrar el botón de eliminar */
 }
 
 
-/* Calendar Styles (for both student and admin preview) */
+/* --- Calendario (index.html y admin.html preview) --- */
 .calendario-container {
-  /* Este es el contenedor general, quizás con padding, background, etc. */
-  /* No le daremos display: grid aquí, sino a un elemento interno para mayor control */
-  background-color: #222;
-  padding: 15px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-  max-width: 900px;
-  margin: 20px auto;
+  background-color: var(--card-dark);
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px var(--shadow-color);
+  margin-top: 30px;
+  overflow-x: auto; /* Permite scroll si el calendario es muy ancho */
 }
 
-/* ESTO ES LO CRUCIAL: Definición para el contenedor de la cuadrícula real del calendario */
 .calendario-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr); /* 7 columnas para los 7 días de la semana */
-    gap: 10px; /* Espacio entre las celdas */
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* 7 columnas iguales */
+  gap: 8px; /* Espacio entre celdas */
+  min-width: 300px; /* Evita que el grid se comprima demasiado */
 }
 
 .day-name-cell {
-    background-color: #333;
-    color: #f5f5f5;
-    font-weight: bold;
-    text-align: center;
-    padding: 10px 5px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: bold;
+  padding: 10px 5px;
+  text-align: center;
+  border-radius: 5px;
+  font-size: 0.9em;
 }
 
 .calendar-day-cell {
-  background-color: #333;
-  border-radius: 5px;
+  background-color: var(--surface-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   padding: 10px;
-  min-height: 100px; /* Para que las celdas tengan un tamaño mínimo */
+  min-height: 100px; /* Altura mínima para cada día */
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  align-items: flex-start;
-  position: relative; /* For positioning messages */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  gap: 5px;
+  box-shadow: 0 2px 5px var(--shadow-color-light);
+}
+
+.calendar-day-cell.empty {
+  background-color: var(--background-dark);
+  border: 1px dashed var(--border-color);
+  box-shadow: none;
 }
 
 .day-number {
   font-size: 1.2em;
   font-weight: bold;
-  color: #f5f5f5;
+  color: var(--primary-color);
   margin-bottom: 5px;
 }
 
 .event-item {
-  font-size: 0.85em;
-  padding: 3px 6px;
-  border-radius: 3px;
+  font-size: 0.8em;
+  padding: 5px;
+  border-radius: 4px;
   margin-bottom: 3px;
-  width: calc(100% - 12px); /* Adjust for padding */
-  box-sizing: border-box;
-  text-align: center;
-  font-weight: 500;
-  word-wrap: break-word; /* Ensure long text breaks */
+  word-wrap: break-word; /* Asegura que el texto largo se rompa */
+  line-height: 1.3;
 }
 
-.loading-message {
-  color: #bbb;
-  text-align: center;
-  grid-column: 1 / -1; /* Center across all columns */
-  padding: 20px;
+/* Estilo para el día corriente */
+.calendar-day-cell.today {
+  border: 2px solid var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(3, 218, 198, 0.3); /* Resplandor al día actual */
+  background-color: #333; /* Un poco más claro para destacar */
 }
 
 .dia-corriente-message {
   font-size: 0.7em;
-  color: #4CAF50; /* Green color for current day message */
+  color: var(--accent-color);
   font-weight: bold;
   position: absolute;
   bottom: 5px;
   right: 5px;
 }
 
-/* Event Legend (user's code, which are more complete) */
+/* --- Leyenda de Eventos --- */
 .legend-container {
-  background-color: #222;
+  background-color: var(--card-dark);
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-  margin-top: 40px; /* User's preferred margin */
-  width: 90%;
-  max-width: 900px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px var(--shadow-color);
+  margin-top: 40px;
+  max-width: 900px; /* Ancho máximo para la leyenda */
   margin-left: auto;
   margin-right: auto;
+  text-align: center;
 }
 
 .event-legend {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap; /* Permite que los ítems de leyenda fluyan */
   gap: 15px;
   justify-content: center;
+  margin-top: 15px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   font-size: 0.9em;
-  color: #e0e0e0;
+  color: var(--text-light);
 }
 
 .legend-color-box {
@@ -389,30 +512,205 @@ hr {
   height: 20px;
   border-radius: 4px;
   margin-right: 8px;
-  border: 1px solid #555; /* subtle border */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Borde sutil */
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+/* --- Mensaje de Carga --- */
+.loading-message {
+  color: #bbb;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* --- Media Queries para Responsividad --- */
+
+/* Teléfonos pequeños y tabletas en orientación vertical (hasta 767px) */
+@media (max-width: 767px) {
   body {
     padding: 10px;
   }
+
   h1 {
     font-size: 2em;
   }
+
   h2 {
     font-size: 1.5em;
   }
-  .admin-actions {
-    flex-direction: column;
-    align-items: stretch;
+
+  /* Ajustes para los botones de selección de rol */
+  .role-buttons {
+    flex-direction: column; /* Asegura que estén apilados en móviles */
+    gap: 15px;
   }
-  .admin-panel-section, .active-events-section {
+
+  .role-button {
+    padding: 15px 20px;
+    font-size: 1.2em;
+  }
+
+  /* Ajustes para el login de administrador */
+  .admin-login-box {
+    padding: 25px 20px;
+  }
+
+  .admin-login-box h2 {
+    font-size: 1.5em;
+  }
+
+  .admin-login-box input[type="password"] {
+    width: calc(100% - 20px);
+    font-size: 1em;
+  }
+
+  /* Ajustes para el panel de administración */
+  .admin-header {
     padding: 15px;
   }
-  .admin-panel-section input[type="date"],
-  .admin-panel-section select {
-    width: calc(100% - 10px); /* Adjust for padding */
-    margin-right: 0;
+
+  .admin-header h1 {
+    font-size: 1.8em;
+    text-align: center;
+    width: 100%;
+  }
+
+  .admin-actions {
+    flex-direction: column; /* Apilar botones de acción */
+    width: 100%;
+  }
+
+  .admin-actions button, .admin-actions .custom-file-upload {
+    width: 100%;
+    margin-left: 0; /* Eliminar margen entre botones apilados */
+    margin-top: 10px; /* Espacio entre botones apilados */
+  }
+
+  .admin-interface-container {
+    flex-direction: column; /* Secciones apiladas */
+    gap: 20px;
+  }
+
+  .event-form-section, .active-events-section {
+    min-width: unset; /* Eliminar min-width en móvil */
+  }
+
+  .event-form-section table {
+    width: 100%;
+    display: block; /* Para que la tabla se comporte mejor en móvil */
+    overflow-x: auto; /* Asegura el scroll si la tabla es muy ancha */
+  }
+  .event-form-section tr, .event-form-section td {
+    display: block; /* Cada td en una nueva línea */
+    width: 100%; /* Ocupa el ancho completo */
+  }
+  .event-form-section td:first-child {
+    font-weight: bold; /* Hacer los labels más visibles */
+    margin-bottom: 5px;
+  }
+  .event-form-section td:last-child {
+      text-align: center; /* Centrar el botón de carga */
+  }
+
+  .eventos-activos-table {
+    min-width: 500px; /* Mantener un mínimo para scroll horizontal */
+  }
+
+  /* Calendario */
+  .calendario-grid {
+    gap: 5px;
+    min-width: unset; /* Deja que el grid se ajuste */
+  }
+
+  .day-name-cell {
+    font-size: 0.8em;
+    padding: 8px 3px;
+  }
+
+  .calendar-day-cell {
+    min-height: 80px;
+    padding: 8px;
+  }
+
+  .day-number {
+    font-size: 1.1em;
+  }
+
+  .event-item {
+    font-size: 0.75em;
+    padding: 4px;
+  }
+
+  .legend-container {
+    padding: 15px;
+  }
+
+  .event-legend {
+    gap: 10px;
+  }
+
+  .legend-item {
+    font-size: 0.8em;
+  }
+}
+
+/* Tabletas en orientación horizontal y pantallas pequeñas de escritorio (768px a 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  h1 {
+    font-size: 2.2em;
+  }
+
+  h2 {
+    font-size: 1.7em;
+  }
+
+  .role-buttons {
+    flex-direction: row; /* En línea en tabletas */
+    gap: 25px;
+  }
+
+  .role-button {
+    flex: 1; /* Para que ocupen el mismo espacio */
+    max-width: 280px;
+  }
+
+  .admin-actions {
+    gap: 15px;
+  }
+
+  .event-form-section, .active-events-section {
+    flex: 1; /* Ocupar el mismo espacio */
+  }
+
+  .calendario-grid {
+    gap: 10px;
+  }
+
+  .day-name-cell {
+    font-size: 0.9em;
+  }
+
+  .calendar-day-cell {
+    min-height: 120px;
+  }
+}
+
+/* Pantallas grandes de escritorio (más de 1200px) */
+@media (min-width: 1201px) {
+  body {
+    padding: 30px;
+  }
+
+  h1 {
+    font-size: 3em;
+  }
+
+  .admin-header {
+    flex-direction: row; /* Botones en línea con el título */
+    justify-content: space-between;
+  }
+
+  .admin-header h1 {
+    margin-right: auto; /* Empuja los botones a la derecha */
   }
 }
