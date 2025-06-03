@@ -3,36 +3,100 @@
 const ADMIN_PASSWORD = "543"; // Considera usar una variable de entorno en un entorno de producción real
 
 // --- Elementos de la Interfaz de Usuario (UI) ---
-const loginScreen = document.getElementById("loginScreen"); // Se mantiene para acceso directo
+const loginScreen = document.getElementById("loginScreen");
 const mainAdminContent = document.getElementById("mainAdminContent");
 const passwordInput = document.getElementById("passwordInput");
 const btnLogin = document.getElementById("btnLogin");
 const loginError = document.getElementById("loginError");
-const btnLogout = document.getElementById("btnLogout"); // Botón de cerrar sesión
+const btnLogout = document.getElementById("btnLogout");
 
 const tituloCalendarioPreview = document.getElementById("tituloCalendarioPreview");
 const calendarioPreviewDiv = document.getElementById("calendarioPreview");
+const eventLegendPreviewDiv = document.getElementById("eventLegendPreview"); // Nueva referencia para la leyenda de preview
+
 const selectDia = document.getElementById("selectDia");
 const selectMateria = document.getElementById("selectMateria");
 const selectTipoEvento = document.getElementById("selectTipoEvento");
 const btnCargarEvento = document.getElementById("btnCargarEvento");
 const tablaEventosActivosBody = document.querySelector("#tablaEventosActivos tbody");
+const inputDetalle = document.getElementById("inputDetalle");
 
 const btnDownloadEvents = document.getElementById("btnDownloadEvents");
-const loadEventsFileInput = document.getElementById("loadEventsFile");
 
 const rowHoraEntrada = document.getElementById("rowHoraEntrada");
 const selectHoraEntrada = document.getElementById("selectHoraEntrada");
 const rowHoraSalida = document.getElementById("rowHoraSalida");
 const selectHoraSalida = document.getElementById("selectHoraSalida");
 
-// --- Datos de Configuración ---
-let eventos = []; // Almacenará todos los eventos
-const LOCAL_STORAGE_KEY = 'eventsData'; // Clave para localStorage
+// --- Variables de estado ---
+let currentMonthPreview, currentYearPreview;
+let allEvents = []; // Almacena todos los eventos cargados desde events.json
 
-// Definición de tipos de eventos y sus colores
-// ¡Hemos quitado "Ausencia 16:10" y agregado "Traer Materiales"!
-const tiposEventos = [
+// --- Funciones auxiliares ---
+
+// Función para determinar si un color es oscuro para elegir el color de texto
+function isColorDark(hexColor) {
+    const r = parseInt(hexColor.substring(1, 3), 16);
+    const g = parseInt(hexColor.substring(3, 5), 16);
+    const b = parseInt(hexColor.substring(5, 7), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5; // Umbral de luminosidad para considerar oscuro
+}
+
+// *** Nueva función para cargar eventos desde events.json ***
+async function fetchEventsData() {
+    try {
+        const response = await fetch('events.json?timestamp=' + new Date().getTime()); // Añadir timestamp para evitar caché
+        if (!response.ok) {
+            // Si el archivo no existe, asumir que está vacío o hubo un error de red
+            if (response.status === 404) {
+                console.warn('events.json no encontrado, se inicializa con un array vacío.');
+                return [];
+            }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Error al cargar events.json:", error);
+        alert("Error al cargar los eventos. Intenta recargar la página.");
+        return []; // Retorna un array vacío en caso de error
+    }
+}
+
+// *** Función para guardar eventos en events.json (requiere backend) ***
+async function saveEventsToJson(events) {
+    try {
+        const response = await fetch('save_events.php', { // Reemplaza 'save_events.php' con la URL de tu script de backend
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(events),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const result = await response.json();
+        if (result.success) {
+            console.log('Eventos guardados en events.json exitosamente.');
+        } else {
+            console.error('Error al guardar eventos en el servidor:', result.message);
+            alert('Error al guardar eventos en el servidor: ' + result.message);
+        }
+    } catch (error) {
+        console.error("Error al enviar eventos al servidor:", error);
+        alert("Error de conexión al servidor al guardar eventos. Los cambios no se persistirán.");
+        // Si no hay un backend, este error es esperado y los cambios no se guardarán permanentemente.
+    }
+}
+
+
+// --- Lógica del Calendario y Eventos ---
+
+// Definición de tipos de eventos y sus colores (¡Consistente con student.js!)
+const tiposEventosColores = [
     { nombre: "Lección", color: "#82cfff", textColor: "black" },
     { nombre: "Evaluación", color: "#ff4d4d", textColor: "white" },
     { nombre: "Trabajo Práctico", color: "#fff66b", textColor: "black" },
@@ -41,149 +105,68 @@ const tiposEventos = [
     { nombre: "!!!No hay clases!!!", color: "#ff4d4d", textColor: "white" },
     { nombre: "Ingreso Especial", color: "#ADD8E6", textColor: "black" },
     { nombre: "Salida Especial", color: "#90EE90", textColor: "black" },
-    { nombre: "Traer Materiales", color: "#FFA500", textColor: "black" } // Nuevo tipo de evento
+    { nombre: "Traer Materiales", color: "#FFA500", textColor: "black" },
+    { nombre: "Recuperatorio", color: "#FF6347", textColor: "white" }, // <-- Nuevo evento
+    { nombre: "Día Corriente", color: "#d4edda", textColor: "black" } // Solo para visualización, no cargable
 ];
 
-// --- Horario de Clases (Nuevo Estructura de Datos) ---
-// Mapea el nombre del día a un array de materias
-const horarioPorDia = {
-    "Lunes": ["Química", "Técnicas Digitales 1", "Hardware 2", "Software 2", "Aviso", "General"],
-    "Martes": ["Redes", "Ética", "Análisis Matemático", "Aviso", "General"],
-    "Miércoles": ["Lengua", "Inglés", "Base de Datos 1", "Aviso", "General"],
-    "Jueves": ["Sistema Operativo 2", "Software 2", "Programación", "Gestión de las Organizaciones", "Análisis Matemático", "Aviso", "General"],
-    "Viernes": ["Programación", "Gestión de las Organizaciones", "Aviso", "General"],
-    "Sábado": ["Aviso", "General"], // Fines de semana pueden tener avisos o generales
-    "Domingo": ["Aviso", "General"]
+const materiasPorDia = {
+    "Lunes": ["Química", "Hardware 2", "Software 2", "Administración"],
+    "Martes": ["Matemática", "Base de Datos", "Redes", "Lengua"],
+    "Miércoles": ["Gestión de las Organizaciones", "Programación 2", "Sistemas de Información", "Inglés"],
+    "Jueves": ["Química", "Hardware 2", "Software 2", "Administración"],
+    "Viernes": ["Matemática", "Base de Datos", "Redes", "Inglés"],
+    "Sábado": ["---"], // No hay materias en sábado
+    "Domingo": ["---"]  // No hay materias en domingo
 };
-
-// Materias generales que siempre deberían aparecer
-const materiasGenerales = ["Aviso", "General"];
-
-
-// --- Funciones de Utilidad ---
-
-function saveEventsToLocalStorage() {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(eventos));
-}
-
-function loadEventsFromLocalStorage() {
-    const storedEvents = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (storedEvents) {
-        try {
-            eventos = JSON.parse(storedEvents);
-        } catch (e) {
-            console.error("Error al parsear eventos desde localStorage, se inicializarán vacíos:", e);
-            eventos = [];
-            // Si el localStorage está corrupto, lo borramos para empezar de cero o cargar el JSON inicial
-            localStorage.removeItem(LOCAL_STORAGE_KEY);
-        }
-    } else {
-        eventos = [];
-    }
-    // Ordenar eventos por fecha para visualización en la tabla y preview
-    eventos.sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
-}
-
-async function loadInitialEventsFromJsonToLocalStorage() {
-    try {
-        const response = await fetch('events.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const initialData = await response.json();
-        if (Array.isArray(initialData)) {
-            // Cargar eventos del JSON inicial solo si localStorage está vacío
-            if (!localStorage.getItem(LOCAL_STORAGE_KEY)) {
-                eventos = initialData;
-                saveEventsToLocalStorage();
-                console.log("Eventos iniciales cargados desde events.json y guardados en localStorage.");
-            } else {
-                console.log("LocalStorage ya contiene eventos, no se cargan los iniciales.");
-            }
-        } else {
-            console.error("El archivo events.json no tiene el formato esperado (debe ser un array de objetos).");
-        }
-    } catch (error) {
-        console.error("Error al cargar el archivo events.json:", error);
-    }
-}
-
-// Función para verificar si un color es oscuro para decidir el color del texto
-function isColorDark(hexColor) {
-    const r = parseInt(hexColor.substring(1, 3), 16);
-    const g = parseInt(hexColor.substring(3, 5), 16);
-    const b = parseInt(hexColor.substring(5, 7), 16);
-    const luminosity = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminosity < 0.5;
-}
-
-// --- Lógica del Calendario y Eventos ---
 
 function populateSelectDia() {
     const today = new Date();
-    const formattedToday = today.toISOString().split('T')[0]; //YYYY-MM-DD
-    selectDia.value = formattedToday;
-    // Llamar a actualizar materias cuando se inicializa el día
-    updateMateriasForSelectedDay();
+    selectDia.value = today.toISOString().split('T')[0]; // Establece la fecha actual por defecto
+    selectDia.dispatchEvent(new Event('change')); // Dispara el evento para actualizar materias
 }
 
 function updateMateriasForSelectedDay() {
-    const selectedDate = new Date(selectDia.value + 'T00:00:00'); // Asegura la zona horaria neutral
+    const selectedDate = new Date(selectDia.value + "T00:00:00"); // Asegura que la fecha sea UTC medianoche
     const dayOfWeek = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
-    const dayNames = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-    const currentDayName = dayNames[dayOfWeek];
+    const days = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+    const currentDayName = days[dayOfWeek];
 
-    const materiasParaEsteDia = horarioPorDia[currentDayName] || materiasGenerales; // Fallback a generales
-
-    selectMateria.innerHTML = ''; // Limpiar opciones existentes
-    materiasParaEsteDia.forEach(materia => {
-        const option = document.createElement('option');
+    const materias = materiasPorDia[currentDayName] || ["---"];
+    selectMateria.innerHTML = "";
+    materias.forEach(materia => {
+        const option = document.createElement("option");
         option.value = materia;
         option.textContent = materia;
         selectMateria.appendChild(option);
     });
 }
 
-
 function populateSelectTipoEvento() {
-    selectTipoEvento.innerHTML = ''; // Limpiar opciones existentes
-    tiposEventos.forEach(tipo => {
-        const option = document.createElement('option');
+    // Los tipos de eventos cargables son los que tienen un nombre y no son "Día Corriente"
+    const tiposCargables = tiposEventosColores.filter(tipo => tipo.nombre !== "Día Corriente");
+
+    selectTipoEvento.innerHTML = "";
+    tiposCargables.forEach(tipo => {
+        const option = document.createElement("option");
         option.value = tipo.nombre;
         option.textContent = tipo.nombre;
         selectTipoEvento.appendChild(option);
     });
-    // Escuchar cambios para mostrar/ocultar campos de hora
-    selectTipoEvento.addEventListener('change', toggleHoraFields);
-    toggleHoraFields(); // Llamar al inicio para el estado por defecto
 }
 
-function populateSelectHora(selectElement, startHour, endHour, stepMinutes, defaultTime) {
-    selectElement.innerHTML = '';
-    let defaultSet = false;
-
+function populateSelectHora(selectElement, startHour, endHour) {
+    selectElement.innerHTML = "";
     for (let h = startHour; h <= endHour; h++) {
-        for (let m = 0; m < 60; m += stepMinutes) {
-            const hour = h.toString().padStart(2, '0');
-            const minute = m.toString().padStart(2, '0');
+        for (let m = 0; m < 60; m += 10) { // Incrementos de 10 minutos
+            const hour = String(h).padStart(2, '0');
+            const minute = String(m).padStart(2, '0');
             const time = `${hour}:${minute}`;
-
-            const option = document.createElement('option');
+            const option = document.createElement("option");
             option.value = time;
             option.textContent = time;
             selectElement.appendChild(option);
-
-            // Set default value if it matches and hasn't been set yet
-            if (defaultTime && time === defaultTime && !defaultSet) {
-                selectElement.value = time;
-                defaultSet = true;
-            }
         }
-    }
-
-    // Fallback if default time wasn't found (e.g., if it's not a step multiple)
-    if (defaultTime && !defaultSet && selectElement.querySelector(`option[value="${defaultTime}"]`)) {
-        selectElement.value = defaultTime;
     }
 }
 
@@ -192,99 +175,160 @@ function toggleHoraFields() {
     if (selectedType === "Ingreso Especial") {
         rowHoraEntrada.style.display = "table-row";
         rowHoraSalida.style.display = "none";
-        populateSelectHora(selectHoraEntrada, 0, 23, 10, "14:00");
+        populateSelectHora(selectHoraEntrada, 0, 23); // Horas completas
+        selectHoraEntrada.value = "14:00"; // Hora por defecto
     } else if (selectedType === "Salida Especial") {
         rowHoraEntrada.style.display = "none";
         rowHoraSalida.style.display = "table-row";
-        // Valores por defecto para Hora de Salida (adaptar según el día)
-        // Usar la fecha del input para calcular el día de la semana
-        const selectedDate = new Date(selectDia.value + 'T00:00:00'); // Asegura que la fecha sea válida, evita problemas de zona horaria
-        const dayOfWeek = selectedDate.getDay(); // 0 = Domingo, 1 = Lunes, etc.
-        let defaultSalidaTime = "17:00"; // Default para Viernes y Fin de semana
-
-        if (dayOfWeek === 1 || dayOfWeek === 4) { // Lunes, Jueves
-            defaultSalidaTime = "18:20";
-        } else if (dayOfWeek === 2) { // Martes
-            defaultSalidaTime = "18:20"; // O el horario que corresponda para Martes
-        } else if (dayOfWeek === 3) { // Miércoles
-            defaultSalidaTime = "20:40";
+        populateSelectHora(selectHoraSalida, 0, 23); // Horas completas
+        const selectedDate = new Date(selectDia.value + "T00:00:00");
+        const dayOfWeek = selectedDate.getDay();
+        // Default de salida según el día
+        switch (dayOfWeek) {
+            case 1: // Lunes
+            case 2: // Martes
+            case 4: // Jueves
+                selectHoraSalida.value = "18:20";
+                break;
+            case 3: // Miércoles
+                selectHoraSalida.value = "20:40";
+                break;
+            case 5: // Viernes
+                selectHoraSalida.value = "17:00";
+                break;
+            default:
+                selectHoraSalida.value = "17:00"; // Valor por defecto para otros días
+                break;
         }
-        // Para Viernes, el default sigue siendo 17:00
-        populateSelectHora(selectHoraSalida, 0, 23, 10, defaultSalidaTime);
     } else {
         rowHoraEntrada.style.display = "none";
         rowHoraSalida.style.display = "none";
     }
 }
 
-// Actualizar las horas de salida y las materias cuando cambia la fecha
-selectDia.addEventListener('change', () => {
-    toggleHoraFields();
-    updateMateriasForSelectedDay(); // ¡Nuevo!
-});
+async function cargarEvento() {
+    const fecha = selectDia.value;
+    const materia = selectMateria.value;
+    const tipoEvento = selectTipoEvento.value;
+    const detalle = inputDetalle.value.trim();
+    const horaEntrada = selectHoraEntrada.value;
+    const horaSalida = selectHoraSalida.value;
 
+    if (!fecha || !materia || !tipoEvento) {
+        alert("Por favor, completa todos los campos obligatorios.");
+        return;
+    }
+
+    // Validar y ajustar si el tipo de evento es "---" para la materia
+    if (materia === "---" && tipoEvento !== "Feriado" && tipoEvento !== "!!!No hay clases!!!") {
+        alert("No se pueden cargar eventos para el día seleccionado, ya que no hay materias disponibles. Solo se permiten 'Feriado' o '!!!No hay clases!!!'.");
+        return;
+    }
+
+    let nuevoEvento = {
+        fecha: fecha,
+        materia: materia,
+        tipoEvento: tipoEvento
+    };
+
+    if (detalle) {
+        nuevoEvento.detalle = detalle;
+    }
+    if (tipoEvento === "Ingreso Especial") {
+        nuevoEvento.horaEntrada = horaEntrada;
+    }
+    if (tipoEvento === "Salida Especial") {
+        nuevoEvento.horaSalida = horaSalida;
+    }
+
+    allEvents.push(nuevoEvento);
+    // Guarda los eventos en el JSON (requiere backend para persistencia)
+    await saveEventsToJson(allEvents);
+
+    // Limpiar campos después de cargar
+    inputDetalle.value = "";
+    selectTipoEvento.value = tiposEventosColores.find(t => t.nombre === "Lección").nombre; // Reiniciar a un valor por defecto
+    toggleHoraFields(); // Ocultar campos de hora si ya no son relevantes
+
+    mostrarEventosActivos();
+    cargarCalendarioPreview();
+}
 
 function mostrarEventosActivos() {
-    tablaEventosActivosBody.innerHTML = ''; // Limpiar tabla
-    // Ordenar eventos por fecha para visualización en la tabla
-    const eventosOrdenados = [...eventos].sort((a, b) => new Date(a.fecha) - new Date(b.fecha));
+    tablaEventosActivosBody.innerHTML = ""; // Limpiar la tabla
 
-    eventosOrdenados.forEach((event, index) => {
-        const row = tablaEventosActivosBody.insertRow();
-        row.insertCell(0).textContent = event.fecha;
-        row.insertCell(1).textContent = event.materia;
-        row.insertCell(2).textContent = event.tipoEvento;
+    // Filtrar eventos futuros o del día actual
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Establecer la hora a medianoche para comparación
 
-        let detailText = '';
-        if (event.horaEntrada) {
-            detailText = `Entrada: ${event.horaEntrada}`;
-        } else if (event.horaSalida) {
-            detailText = `Salida: ${event.horaSalida}`;
-        } else if (event.detalle) {
-            detailText = event.detalle;
+    const eventosFiltrados = allEvents.filter(evento => {
+        const eventDate = new Date(evento.fecha + "T00:00:00");
+        return eventDate >= today;
+    }).sort((a, b) => {
+        // Ordenar por fecha y luego por materia y tipo de evento
+        const dateA = new Date(a.fecha);
+        const dateB = new Date(b.fecha);
+        if (dateA.getTime() !== dateB.getTime()) {
+            return dateA.getTime() - dateB.getTime();
         }
-        row.insertCell(3).textContent = detailText; // Celda para el detalle/horas
+        if (a.materia < b.materia) return -1;
+        if (a.materia > b.materia) return 1;
+        if (a.tipoEvento < b.tipoEvento) return -1;
+        if (a.tipoEvento > b.tipoEvento) return 1;
+        return 0;
+    });
 
-        const actionCell = row.insertCell(4); // Última celda
-        const deleteButton = document.createElement('button');
-        deleteButton.textContent = 'Eliminar';
-        deleteButton.classList.add('btn-eliminar');
-        deleteButton.addEventListener('click', () => {
-            // Para eliminar, necesitamos el índice original en el array 'eventos'
-            // ya que 'eventosOrdenados' es una copia.
-            const originalIndex = eventos.findIndex(e =>
-                e.fecha === event.fecha &&
-                e.materia === event.materia &&
-                e.tipoEvento === event.tipoEvento &&
-                (e.horaEntrada || '') === (event.horaEntrada || '') &&
-                (e.horaSalida || '') === (event.horaSalida || '') &&
-                (e.detalle || '') === (event.detalle || '')
-            );
-            if (originalIndex !== -1) {
-                eliminarEvento(originalIndex);
-            }
-        });
-        actionCell.appendChild(deleteButton);
+
+    eventosFiltrados.forEach((evento, index) => {
+        const row = tablaEventosActivosBody.insertRow();
+        row.insertCell().textContent = evento.fecha;
+        row.insertCell().textContent = evento.materia;
+        row.insertCell().textContent = evento.tipoEvento;
+        row.insertCell().textContent = evento.detalle || ""; // Mostrar detalle si existe
+
+        const actionCell = row.insertCell();
+        const btnEliminar = document.createElement("button");
+        btnEliminar.textContent = "Eliminar";
+        btnEliminar.classList.add("btn-danger");
+        // Usar el índice del evento original en `allEvents` para eliminar correctamente
+        const originalIndex = allEvents.indexOf(evento);
+        btnEliminar.onclick = () => eliminarEvento(originalIndex);
+        actionCell.appendChild(btnEliminar);
     });
 }
 
-function cargarCalendarioPreview() {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = hoy.getMonth(); // 0-indexed
+async function eliminarEvento(index) {
+    if (confirm("¿Estás seguro de que quieres eliminar este evento?")) {
+        allEvents.splice(index, 1);
+        // Guarda los eventos en el JSON después de eliminar (requiere backend)
+        await saveEventsToJson(allEvents);
+        mostrarEventosActivos();
+        cargarCalendarioPreview();
+    }
+}
 
-    tituloCalendarioPreview.textContent = `Vista Previa del Calendario (Mes Actual)`;
+// --- Funciones para la vista previa del calendario (duplicado parcial de student.js para independencia) ---
 
-    const firstDayOfMonth = new Date(year, month, 1);
-    const lastDayOfMonth = new Date(year, month + 1, 0);
-    const daysInMonth = lastDayOfMonth.getDate();
+function cargarCalendarioPreview(year = currentYearPreview, month = currentMonthPreview) {
+    const today = new Date();
+    if (year === undefined || month === undefined) {
+        currentMonthPreview = today.getMonth();
+        currentYearPreview = today.getFullYear();
+    } else {
+        currentMonthPreview = month;
+        currentYearPreview = year;
+    }
 
-    let startDayOfWeek = firstDayOfMonth.getDay();
-    startDayOfWeek = (startDayOfWeek === 0) ? 6 : startDayOfWeek - 1;
+    const firstDayOfMonth = new Date(currentYearPreview, currentMonthPreview, 1);
+    const daysInMonth = new Date(currentYearPreview, currentMonthPreview + 1, 0).getDate();
+    const startDayIndex = (firstDayOfMonth.getDay() + 6) % 7; // Ajustar para que la semana empiece en Lunes
 
-    // *** CAMBIO CLAVE AQUÍ: Crear un contenedor para la cuadrícula del calendario ***
+    const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+    tituloCalendarioPreview.textContent = `${monthNames[currentMonthPreview]} ${currentYearPreview}`;
+
+    calendarioPreviewDiv.innerHTML = "";
     const calendarGrid = document.createElement('div');
-    calendarGrid.classList.add('calendario-grid'); // Aplicará las propiedades de grid del CSS
+    calendarGrid.classList.add('calendario-grid');
 
     const dayNames = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
     dayNames.forEach(dayName => {
@@ -294,7 +338,7 @@ function cargarCalendarioPreview() {
         calendarGrid.appendChild(dayNameCell);
     });
 
-    for (let i = 0; i < startDayOfWeek; i++) {
+    for (let i = 0; i < startDayIndex; i++) {
         const emptyCell = document.createElement('div');
         emptyCell.classList.add('calendar-day-cell', 'empty');
         calendarGrid.appendChild(emptyCell);
@@ -304,232 +348,161 @@ function cargarCalendarioPreview() {
         const cell = document.createElement('div');
         cell.classList.add('calendar-day-cell');
 
-        const dayNumber = document.createElement('div');
+        const dayNumber = document.createElement('span');
         dayNumber.classList.add('day-number');
         dayNumber.textContent = day;
         cell.appendChild(dayNumber);
 
-        const currentDate = new Date(year, month, day);
-        const formattedCurrentDate = currentDate.toISOString().split('T')[0];
+        const fullDate = `${currentYearPreview}-${String(currentMonthPreview + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-        const eventsForDay = eventos.filter(event => event.fecha === formattedCurrentDate);
-        let contentAdded = false;
+        // Obtener eventos para este día
+        const eventsForDay = allEvents.filter(event => event.fecha === fullDate);
 
-        eventsForDay.forEach(event => {
-            const eventType = tiposEventos.find(tipo => tipo.nombre === event.tipoEvento);
-            if (eventType) {
+        if (eventsForDay.length > 0) {
+            // Ordenar eventos para que los feriados y no-clases vayan primero
+            eventsForDay.sort((a, b) => {
+                const order = ["Feriado", "!!!No hay clases!!!"];
+                const indexA = order.indexOf(a.tipoEvento);
+                const indexB = order.indexOf(b.tipoEvento);
+                if (indexA !== -1 && indexB === -1) return -1;
+                if (indexA === -1 && indexB !== -1) return 1;
+                return 0; // Mantener el orden si ambos o ninguno son de alta prioridad
+            });
+
+            eventsForDay.forEach(event => {
                 const eventItem = document.createElement('div');
                 eventItem.classList.add('event-item');
-                let eventText = `${event.materia} - ${event.tipoEvento}`;
-                if (event.horaEntrada) eventText += ` (Entrada: ${event.horaEntrada})`;
-                if (event.horaSalida) eventText += ` (Salida: ${event.horaSalida})`;
-                if (event.detalle && !event.horaEntrada && !event.horaSalida) eventText = event.detalle; // Si hay detalle pero no horas, usar detalle
-                eventItem.textContent = eventText;
-                eventItem.style.backgroundColor = eventType.color;
-                eventItem.style.color = eventType.textColor;
-                cell.appendChild(eventItem);
-                contentAdded = true;
-            }
-        });
 
-        const isToday = hoy.getDate() === day && hoy.getMonth() === month && hoy.getFullYear() === year;
-        if (isToday) {
-            if (!contentAdded || eventsForDay.length === 0) {
-                cell.classList.add('today');
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('dia-corriente-message');
-                messageDiv.textContent = 'Día corriente';
-                cell.appendChild(messageDiv);
-                contentAdded = true;
+                const eventTypeInfo = tiposEventosColores.find(t => t.nombre === event.tipoEvento);
+                if (eventTypeInfo) {
+                    eventItem.style.backgroundColor = eventTypeInfo.color;
+                    eventItem.style.color = eventTypeInfo.textColor;
+                    // Añadir un borde si el color de fondo es muy claro y el texto es oscuro
+                    if (!isColorDark(eventTypeInfo.color) && eventTypeInfo.textColor === 'black') {
+                        eventItem.style.border = '1px solid #ccc';
+                    }
+                }
+
+                let eventText = event.tipoEvento;
+                if (event.materia && event.materia !== "General" && event.materia !== "---") {
+                    eventText += ` (${event.materia})`;
+                }
+                if (event.detalle) {
+                    eventText += `: ${event.detalle}`;
+                }
+                if (event.horaEntrada) {
+                    eventText += ` Entrada: ${event.horaEntrada}`;
+                }
+                if (event.horaSalida) {
+                    eventText += ` Salida: ${event.horaSalida}`;
+                }
+
+                eventItem.textContent = eventText;
+                cell.appendChild(eventItem);
+            });
+        } else {
+            // Si no hay eventos, colorear como "Día Corriente"
+            const diaCorrienteInfo = tiposEventosColores.find(t => t.nombre === "Día Corriente");
+            if (diaCorrienteInfo) {
+                cell.style.backgroundColor = diaCorrienteInfo.color;
+                cell.style.color = diaCorrienteInfo.textColor;
             }
         }
-        calendarGrid.appendChild(cell); // Añadir la celda al grid
+        // Marcar el día actual
+        if (day === today.getDate() && currentMonthPreview === today.getMonth() && currentYearPreview === today.getFullYear()) {
+            cell.classList.add('current-day');
+        }
+        calendarGrid.appendChild(cell);
     }
 
-    calendarioPreviewDiv.innerHTML = ''; // Limpiar contenido previo
-    calendarioPreviewDiv.appendChild(calendarGrid); // *** AÑADIR EL GRID AL CONTENEDOR PRINCIPAL ***
+    calendarioPreviewDiv.appendChild(calendarGrid);
+    populateEventLegendPreview();
+}
+
+function populateEventLegendPreview() {
+    eventLegendPreviewDiv.innerHTML = '';
+    tiposEventosColores.forEach(tipo => {
+        if (tipo.nombre === "Día Corriente") return; // No es necesario mostrar 'Día Corriente' en la leyenda
+
+        const legendItem = document.createElement('div');
+        legendItem.classList.add('legend-item');
+
+        const colorBox = document.createElement('span');
+        colorBox.classList.add('legend-color-box');
+        colorBox.style.backgroundColor = tipo.color;
+        colorBox.style.borderColor = isColorDark(tipo.color) ? 'white' : 'black';
+
+        const legendText = document.createElement('span');
+        legendText.textContent = tipo.nombre;
+
+        legendItem.appendChild(colorBox);
+        legendItem.appendChild(legendText);
+        eventLegendPreviewDiv.appendChild(legendItem);
+    });
 }
 
 // --- Manejadores de Eventos ---
 
-btnLogin.addEventListener('click', () => {
-    const password = passwordInput.value;
-    if (password === ADMIN_PASSWORD) {
-        sessionStorage.setItem('isAdminLoggedIn', 'true'); // Marca como logueado en sessionStorage
+btnLogin.addEventListener("click", () => {
+    if (passwordInput.value === ADMIN_PASSWORD) {
+        sessionStorage.setItem('isAdminLoggedIn', 'true');
         loginScreen.style.display = "none";
         mainAdminContent.style.display = "block";
-        loginError.textContent = ""; // Limpiar mensaje de error
         inicializarAdmin();
     } else {
-        loginError.textContent = "Contraseña incorrecta. Intenta de nuevo.";
+        loginError.textContent = "Contraseña incorrecta.";
     }
 });
 
-// Permitir presionar Enter en el campo de contraseña
-passwordInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
+passwordInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
         btnLogin.click();
     }
 });
 
-btnLogout.addEventListener('click', () => {
-    sessionStorage.removeItem('isAdminLoggedIn'); // Eliminar la marca de logueado
-    // Al cerrar sesión, redirigimos a la página de selección de rol
-    window.location.href = "index.html";
+btnLogout.addEventListener("click", () => {
+    sessionStorage.removeItem('isAdminLoggedIn');
+    window.location.href = "index.html"; // Redirigir a la página de selección de rol
 });
 
-
-btnCargarEvento.addEventListener('click', () => {
-    const fecha = selectDia.value;
-    const materia = selectMateria.value;
-    const tipoEvento = selectTipoEvento.value;
-
-    if (!fecha || !materia || !tipoEvento) {
-        alert("Por favor, completa todos los campos para el evento.");
-        return;
-    }
-
-    let detalle = '';
-    let horaEntrada = '';
-    let horaSalida = '';
-
-    if (tipoEvento === "Ingreso Especial") {
-        horaEntrada = selectHoraEntrada.value;
-        detalle = `Ingreso: ${horaEntrada}`;
-    } else if (tipoEvento === "Salida Especial") {
-        horaSalida = selectHoraSalida.value;
-        detalle = `Salida: ${horaSalida}`;
-    }
-
-    const newEvent = {
-        fecha: fecha,
-        materia: materia,
-        tipoEvento: tipoEvento
-    };
-    if (detalle) newEvent.detalle = detalle;
-    if (horaEntrada) newEvent.horaEntrada = horaEntrada;
-    if (horaSalida) newEvent.horaSalida = horaSalida;
-
-
-    // Evitar duplicados exactos (fecha, materia, tipoEvento y horas/detalle si aplican)
-    const isDuplicate = eventos.some(event =>
-        event.fecha === newEvent.fecha &&
-        event.materia === newEvent.materia &&
-        event.tipoEvento === newEvent.tipoEvento &&
-        (event.horaEntrada || '') === (newEvent.horaEntrada || '') && // Comparar con cadena vacía si es null/undefined
-        (event.horaSalida || '') === (newEvent.horaSalida || '') &&
-        (event.detalle || '') === (newEvent.detalle || '')
-    );
-
-    if (isDuplicate) {
-        alert("Ya existe un evento idéntico con la misma fecha, materia, tipo de evento y detalles/horas.");
-        return;
-    }
-
-    eventos.push(newEvent);
-    saveEventsToLocalStorage();
-    mostrarEventosActivos();
+selectDia.addEventListener("change", () => {
+    updateMateriasForSelectedDay();
+    // También actualizar la vista previa si el día actual es visible
     cargarCalendarioPreview();
-    alert("Evento cargado con éxito.");
-
-    // Opcional: limpiar los campos después de cargar el evento
-    selectDia.value = new Date().toISOString().split('T')[0];
-    // selectMateria y selectTipoEvento pueden mantener su última selección o resetearse
-    // selectMateria.selectedIndex = 0;
-    // selectTipoEvento.selectedIndex = 0;
-    updateMateriasForSelectedDay(); // Actualizar materias de nuevo por si se seleccionó un día diferente
-    toggleHoraFields(); // Ocultar campos de hora si no son relevantes
+    toggleHoraFields(); // Actualizar visibilidad de campos de hora al cambiar la fecha
 });
 
-function eliminarEvento(index) {
-    if (confirm("¿Estás seguro de que quieres eliminar este evento?")) {
-        eventos.splice(index, 1);
-        saveEventsToLocalStorage();
-        mostrarEventosActivos();
-        cargarCalendarioPreview();
-        alert("Evento eliminado con éxito.");
-    }
-}
+selectTipoEvento.addEventListener("change", toggleHoraFields);
 
-btnDownloadEvents.addEventListener('click', () => {
-    const dataStr = JSON.stringify(eventos, null, 2); // Formato legible con indentación de 2 espacios
+btnCargarEvento.addEventListener("click", cargarEvento);
+
+btnDownloadEvents.addEventListener("click", () => {
+    const dataStr = JSON.stringify(allEvents, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'events.json';
+    a.download = "events.json";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url); // Liberar el objeto URL
+    URL.revokeObjectURL(url);
 });
 
-loadEventsFileInput.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) {
-        return;
-    }
+// --- Inicialización ---
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const loadedData = JSON.parse(e.target.result);
-            if (Array.isArray(loadedData)) {
-                // Opción para Mergear (añadir nuevos y actualizar existentes)
-                loadedData.forEach(newEvent => {
-                    const existingIndex = eventos.findIndex(event =>
-                        event.fecha === newEvent.fecha &&
-                        event.materia === newEvent.materia &&
-                        event.tipoEvento === newEvent.tipoEvento &&
-                        (event.horaEntrada || '') === (newEvent.horaEntrada || '') &&
-                        (event.horaSalida || '') === (newEvent.horaSalida || '') &&
-                        (event.detalle || '') === (newEvent.detalle || '')
-                    );
-                    if (existingIndex !== -1) {
-                        // Actualizar evento existente
-                        eventos[existingIndex] = newEvent;
-                    } else {
-                        // Añadir nuevo evento
-                        eventos.push(newEvent);
-                    }
-                });
-                saveEventsToLocalStorage();
-                mostrarEventosActivos();
-                cargarCalendarioPreview();
-                alert("Eventos cargados desde JSON con éxito y combinados con los existentes.");
-            } else {
-                alert("El archivo JSON no tiene el formato esperado (debe ser un array de objetos).");
-            }
-        } catch (error) {
-            alert("Error al leer o parsear el archivo JSON: " + error.message);
-            console.error("Error al parsear JSON:", error);
-        } finally {
-            loadEventsFileInput.value = ""; // Limpiar el input de archivo
-        }
-    };
-    reader.onerror = () => {
-        alert("Error al leer el archivo.");
-        loadEventsFileInput.value = "";
-    };
-    reader.readAsText(file);
-});
+async function inicializarAdmin() {
+    // Cargar los eventos desde el JSON al iniciar el admin
+    allEvents = await fetchEventsData();
 
-// Inicialización
-function inicializarAdmin() {
     populateSelectDia(); // Esto ahora llama a updateMateriasForSelectedDay()
-    // populateSelectMateria(); // Ya no se llama directamente, se hace en populateSelectDia
     populateSelectTipoEvento();
-    loadEventsFromLocalStorage(); // Cargar eventos del localStorage del administrador
+    toggleHoraFields(); // Asegura la visibilidad correcta al cargar
     mostrarEventosActivos();
     cargarCalendarioPreview();
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Primero, intenta cargar los eventos iniciales si localStorage está vacío
-    // Esto asegura que haya datos al menos del events.json si nunca se ha usado el admin
-    await loadInitialEventsFromJsonToLocalStorage();
-
-    // Luego, verifica la sesión de administrador para mostrar la interfaz
+document.addEventListener('DOMContentLoaded', () => {
     if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
         loginScreen.style.display = "none";
         mainAdminContent.style.display = "block";
